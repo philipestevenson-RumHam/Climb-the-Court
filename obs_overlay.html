@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Climb the Court — OBS Overlay</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --grass:#1a6b2e; --grass-light:#2d9e47; --grass-bright:#3dbd58;
+  --accent:#4eff7a; --accent2:#b8ff6a; --gold:#f0e040;
+  --dark:#0a1f0e; --dark2:#0f2a14; --card:#122b18; --card2:#163320;
+  --text:#e8ffe0; --muted:#7aad80;
+  --win:#3dbd58; --lose:#e05050;
+  --border:rgba(78,255,122,0.12);
+  --grad:linear-gradient(135deg,#b8ff6a 0%,#4eff7a 60%,#2d9e47 100%);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{
+  width:100%;height:100%;overflow:hidden;
+  background:var(--dark);
+  background-image:
+    radial-gradient(ellipse at top left,rgba(78,255,122,0.07) 0%,transparent 50%),
+    radial-gradient(ellipse at bottom right,rgba(45,158,71,0.10) 0%,transparent 50%);
+  color:var(--text);
+  font-family:'Outfit',sans-serif;
+}
+
+.overlay-wrap{
+  display:flex;
+  flex-direction:column;
+  height:100vh;
+  padding:1.2%;
+  gap:1%;
+}
+
+/* ── HEADER ── */
+.overlay-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-shrink:0;
+  padding:0.5% 1%;
+  background:linear-gradient(135deg,var(--dark2),var(--card));
+  border:1px solid var(--border);
+  border-radius:8px;
+  border-bottom:2px solid var(--grass-bright);
+}
+.overlay-logo{
+  font-family:'Bebas Neue',cursive;
+  font-size:clamp(1rem,2.5vw,2rem);
+  letter-spacing:0.12em;
+  background:var(--grad);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  line-height:1;
+}
+.overlay-round{
+  font-family:'Bebas Neue',cursive;
+  font-size:clamp(0.8rem,1.8vw,1.5rem);
+  color:var(--muted);
+  letter-spacing:0.12em;
+}
+.overlay-status{
+  font-size:clamp(0.55rem,1vw,0.8rem);
+  color:var(--muted);
+  display:flex;align-items:center;gap:0.4rem;
+}
+.status-dot{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--muted);
+  animation:pulse 2s infinite;
+}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+
+/* ── COURT GRID ── */
+.gfx-grid{
+  display:grid;
+  gap:1%;
+  flex:1;
+  min-height:0;
+}
+.gfx-court{
+  background:var(--card2);
+  border:1px solid var(--border);
+  border-radius:9px;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+}
+.gfx-court-hdr{
+  background:linear-gradient(135deg,var(--grass),var(--grass-light));
+  padding:1.5% 3%;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;
+}
+.gfx-court-hdr.gold{background:linear-gradient(135deg,#8b7700,#b8a000);}
+.gfx-court-name{
+  font-family:'Bebas Neue',cursive;
+  font-size:clamp(0.8rem,1.8vw,1.5rem);
+  color:#fff;letter-spacing:0.06em;
+}
+.gfx-body{
+  flex:1;display:flex;align-items:stretch;
+  padding:2% 3%;gap:2%;min-height:0;
+}
+.gfx-team{
+  flex:1;display:flex;flex-direction:column;justify-content:space-between;
+}
+.gfx-team-lbl{
+  font-family:'Bebas Neue',cursive;
+  font-size:clamp(0.6rem,1.1vw,0.95rem);
+  color:var(--muted);letter-spacing:0.1em;margin-bottom:3%;
+}
+.gfx-prow{
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(255,255,255,0.05);border:1px solid var(--border);
+  border-radius:5px;padding:0 4%;height:2.2em;
+  flex-shrink:0;overflow:hidden;margin-bottom:2%;
+}
+.gfx-pname{
+  font-size:clamp(0.55rem,1vw,0.88rem);font-weight:600;
+  flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.gfx-pscore{
+  font-family:'Bebas Neue',cursive;
+  font-size:clamp(0.7rem,1.3vw,1.1rem);
+  color:var(--accent);min-width:2em;text-align:right;
+}
+.gfx-vs{
+  font-family:'Bebas Neue',cursive;
+  font-size:clamp(0.75rem,1.4vw,1.2rem);
+  color:var(--muted);
+  display:flex;align-items:center;padding:0 1%;align-self:center;
+}
+.gfx-divider{width:1px;background:var(--border);flex-shrink:0;align-self:stretch;}
+.gfx-total{
+  font-family:'Bebas Neue',cursive;
+  font-size:clamp(0.9rem,1.8vw,1.5rem);
+  color:var(--accent);text-align:center;margin-top:1%;
+}
+.gfx-result{
+  text-align:center;
+  font-family:'Bebas Neue',cursive;
+  font-size:clamp(0.75rem,1.4vw,1.2rem);
+  letter-spacing:0.07em;
+  border-top:1px solid var(--border);
+  padding:1.5% 0 1%;
+  flex-shrink:0;
+}
+</style>
+</head>
+<body>
+<div class="overlay-wrap">
+  <div class="overlay-header">
+    <span style="font-size:clamp(0.9rem,2vw,1.6rem)">🎾</span>
+    <div class="overlay-logo">Climb the Court</div>
+    <div class="overlay-round" id="overlay-round">—</div>
+    <div class="overlay-status">
+      <div class="status-dot" id="status-dot"></div>
+      <span id="status-txt">Loading…</span>
+    </div>
+  </div>
+  <div class="gfx-grid" id="grid"></div>
+</div>
+
+<script>
+function escHtml(str){
+  if(!str)return'';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function load(){
+  try{
+    const resp=await fetch('ctc_data.json?'+Date.now());
+    if(!resp.ok)throw new Error('HTTP '+resp.status);
+    const data=await resp.json();
+    const s=data.state;
+    if(!s||!s.launched){
+      document.getElementById('grid').innerHTML='<div style="text-align:center;padding:3rem;color:var(--muted);font-size:1rem">Waiting for tournament data…</div>';
+      setStatus(false,'No tournament data');return;
+    }
+
+    const r=s.rounds[s.currentRound]||s.rounds[s.rounds.length-1];
+    document.getElementById('overlay-round').textContent=r?r.label:'—';
+
+    const courts=s.numPlayers/4;
+    const fixtures=r?r.fixtures:[];
+    const cols=Math.min(courts,4);
+    const rows=Math.ceil(courts/cols);
+    document.getElementById('grid').style.gridTemplateColumns=`repeat(${cols},1fr)`;
+    if(rows>1) document.getElementById('grid').style.gridTemplateRows=`repeat(${rows},1fr)`;
+
+    let html='';
+    fixtures.forEach(f=>{
+      const t1=s.teams[f.team1id],t2=s.teams[f.team2id];
+      const p1a=s.players[t1.p1id],p1b=s.players[t1.p2id];
+      const p2a=s.players[t2.p1id],p2b=s.players[t2.p2id];
+      const t1tot=(parseInt(f.scores.p1a)||0)+(parseInt(f.scores.p1b)||0);
+      const t2tot=(parseInt(f.scores.p2a)||0)+(parseInt(f.scores.p2b)||0);
+      const label=r.type==='seeding'?`Seeding #${f.id+1}`:`Court ${f.courtNum}`;
+      const isTop=f.courtNum===1&&r.type==='match';
+
+      let resultHtml='';
+      if(f.result){
+        const w=s.teams[f.result.winner];
+        resultHtml=`<div class="gfx-result" style="color:var(--win)">✓ ${escHtml(w.name)} Win</div>`;
+      }
+
+      html+=`<div class="gfx-court">
+        <div class="gfx-court-hdr ${isTop?'gold':''}">
+          <span class="gfx-court-name">${label}</span>
+          ${isTop?'<span style="font-size:0.65em;color:rgba(255,255,255,0.8)">🏆 TOP</span>':''}
+        </div>
+        <div class="gfx-body">
+          <div class="gfx-team">
+            <div class="gfx-team-lbl">${escHtml(t1.name)}</div>
+            <div class="gfx-prow"><span class="gfx-pname">${escHtml(p1a.name)}</span><span class="gfx-pscore">${f.scores.p1a!==''?f.scores.p1a:'—'}</span></div>
+            <div class="gfx-prow"><span class="gfx-pname">${escHtml(p1b.name)}</span><span class="gfx-pscore">${f.scores.p1b!==''?f.scores.p1b:'—'}</span></div>
+            <div class="gfx-total">${f.scores.p1a!==''||f.scores.p1b!==''?t1tot:''}</div>
+          </div>
+          <div class="gfx-divider"></div>
+          <div class="gfx-vs">VS</div>
+          <div class="gfx-divider"></div>
+          <div class="gfx-team">
+            <div class="gfx-team-lbl">${escHtml(t2.name)}</div>
+            <div class="gfx-prow"><span class="gfx-pname">${escHtml(p2a.name)}</span><span class="gfx-pscore">${f.scores.p2a!==''?f.scores.p2a:'—'}</span></div>
+            <div class="gfx-prow"><span class="gfx-pname">${escHtml(p2b.name)}</span><span class="gfx-pscore">${f.scores.p2b!==''?f.scores.p2b:'—'}</span></div>
+            <div class="gfx-total">${f.scores.p2a!==''||f.scores.p2b!==''?t2tot:''}</div>
+          </div>
+        </div>
+        ${resultHtml}
+      </div>`;
+    });
+
+    document.getElementById('grid').innerHTML=html;
+    setStatus(true,'Live · '+new Date().toLocaleTimeString());
+  }catch(e){
+    setStatus(false,'Waiting for ctc_data.json');
+    document.getElementById('grid').innerHTML='<div style="text-align:center;padding:3rem;color:var(--muted);font-size:0.9rem">Export ctc_data.json from the main app to show live data.</div>';
+  }
+}
+
+function setStatus(ok,msg){
+  document.getElementById('status-dot').style.background=ok?'var(--win)':'var(--lose)';
+  document.getElementById('status-txt').textContent=msg;
+}
+
+load();
+setInterval(load,2000);
+</script>
+</body>
+</html>

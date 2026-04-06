@@ -1,0 +1,408 @@
+{
+  "version": 1,
+  "exportedAt": "2026-04-06T14:38:37.856Z",
+  "game": "climb-the-court",
+  "state": {
+    "launched": true,
+    "name": "Climb the Court",
+    "numPlayers": 16,
+    "numRounds": 3,
+    "players": [
+      {
+        "id": 0,
+        "name": "Alex"
+      },
+      {
+        "id": 1,
+        "name": "Blake"
+      },
+      {
+        "id": 2,
+        "name": "Casey"
+      },
+      {
+        "id": 3,
+        "name": "Drew"
+      },
+      {
+        "id": 4,
+        "name": "Ellis"
+      },
+      {
+        "id": 5,
+        "name": "Finley"
+      },
+      {
+        "id": 6,
+        "name": "Gray"
+      },
+      {
+        "id": 7,
+        "name": "Harper"
+      },
+      {
+        "id": 8,
+        "name": "Indigo"
+      },
+      {
+        "id": 9,
+        "name": "Jordan"
+      },
+      {
+        "id": 10,
+        "name": "Kendall"
+      },
+      {
+        "id": 11,
+        "name": "Logan"
+      },
+      {
+        "id": 12,
+        "name": "Morgan"
+      },
+      {
+        "id": 13,
+        "name": "Noel"
+      },
+      {
+        "id": 14,
+        "name": "Oakley"
+      },
+      {
+        "id": 15,
+        "name": "Parker"
+      }
+    ],
+    "teams": [
+      {
+        "id": 0,
+        "name": "Team 1",
+        "p1id": 7,
+        "p2id": 15
+      },
+      {
+        "id": 1,
+        "name": "Team 2",
+        "p1id": 1,
+        "p2id": 11
+      },
+      {
+        "id": 2,
+        "name": "Team 3",
+        "p1id": 12,
+        "p2id": 0
+      },
+      {
+        "id": 3,
+        "name": "Team 4",
+        "p1id": 13,
+        "p2id": 10
+      },
+      {
+        "id": 4,
+        "name": "Team 5",
+        "p1id": 4,
+        "p2id": 5
+      },
+      {
+        "id": 5,
+        "name": "Team 6",
+        "p1id": 8,
+        "p2id": 6
+      },
+      {
+        "id": 6,
+        "name": "Team 7",
+        "p1id": 3,
+        "p2id": 9
+      },
+      {
+        "id": 7,
+        "name": "Team 8",
+        "p1id": 14,
+        "p2id": 2
+      }
+    ],
+    "rounds": [
+      {
+        "type": "seeding",
+        "roundNum": 0,
+        "label": "Seeding",
+        "fixtures": [
+          {
+            "id": 0,
+            "courtNum": null,
+            "team1id": 4,
+            "team2id": 1,
+            "scores": {
+              "p1a": 1,
+              "p1b": 2,
+              "p2a": 2,
+              "p2b": 3
+            },
+            "result": null,
+            "tiebreak": null
+          },
+          {
+            "id": 1,
+            "courtNum": null,
+            "team1id": 2,
+            "team2id": 5,
+            "scores": {
+              "p1a": 3,
+              "p1b": 4,
+              "p2a": 4,
+              "p2b": 5
+            },
+            "result": null,
+            "tiebreak": null
+          },
+          {
+            "id": 2,
+            "courtNum": null,
+            "team1id": 7,
+            "team2id": 3,
+            "scores": {
+              "p1a": 5,
+              "p1b": 6,
+              "p2a": 6,
+              "p2b": 7
+            },
+            "result": null,
+            "tiebreak": null
+          },
+          {
+            "id": 3,
+            "courtNum": null,
+            "team1id": 6,
+            "team2id": 0,
+            "scores": {
+              "p1a": 7,
+              "p1b": 8,
+              "p2a": 8,
+              "p2b": 8
+            },
+            "result": null,
+            "tiebreak": null
+          }
+        ],
+        "completed": true,
+        "courtAssignments": [
+          {
+            "courtNum": 1,
+            "team1id": 0,
+            "team2id": 6
+          },
+          {
+            "courtNum": 2,
+            "team1id": 3,
+            "team2id": 7
+          },
+          {
+            "courtNum": 3,
+            "team1id": 5,
+            "team2id": 2
+          },
+          {
+            "courtNum": 4,
+            "team1id": 1,
+            "team2id": 4
+          }
+        ],
+        "seedingRanking": [
+          {
+            "tid": 0,
+            "total": 16,
+            "maxIndiv": 8,
+            "tiebreakAdv": 0
+          },
+          {
+            "tid": 6,
+            "total": 15,
+            "maxIndiv": 8,
+            "tiebreakAdv": 0
+          },
+          {
+            "tid": 3,
+            "total": 13,
+            "maxIndiv": 7,
+            "tiebreakAdv": 0
+          },
+          {
+            "tid": 7,
+            "total": 11,
+            "maxIndiv": 6,
+            "tiebreakAdv": 0
+          },
+          {
+            "tid": 5,
+            "total": 9,
+            "maxIndiv": 5,
+            "tiebreakAdv": 0
+          },
+          {
+            "tid": 2,
+            "total": 7,
+            "maxIndiv": 4,
+            "tiebreakAdv": 0
+          },
+          {
+            "tid": 1,
+            "total": 5,
+            "maxIndiv": 3,
+            "tiebreakAdv": 0
+          },
+          {
+            "tid": 4,
+            "total": 3,
+            "maxIndiv": 2,
+            "tiebreakAdv": 0
+          }
+        ]
+      },
+      {
+        "type": "match",
+        "roundNum": 1,
+        "label": "Round 2",
+        "fixtures": [
+          {
+            "id": 0,
+            "courtNum": 1,
+            "team1id": 0,
+            "team2id": 6,
+            "scores": {
+              "p1a": 1,
+              "p1b": 2,
+              "p2a": 3,
+              "p2b": 4
+            },
+            "result": {
+              "winner": 6,
+              "loser": 0
+            },
+            "tiebreak": null
+          },
+          {
+            "id": 1,
+            "courtNum": 2,
+            "team1id": 3,
+            "team2id": 7,
+            "scores": {
+              "p1a": 5,
+              "p1b": 6,
+              "p2a": 7,
+              "p2b": 8
+            },
+            "result": {
+              "winner": 7,
+              "loser": 3
+            },
+            "tiebreak": null
+          },
+          {
+            "id": 2,
+            "courtNum": 3,
+            "team1id": 5,
+            "team2id": 2,
+            "scores": {
+              "p1a": 9,
+              "p1b": 10,
+              "p2a": 11,
+              "p2b": 12
+            },
+            "result": {
+              "winner": 2,
+              "loser": 5
+            },
+            "tiebreak": null
+          },
+          {
+            "id": 3,
+            "courtNum": 4,
+            "team1id": 1,
+            "team2id": 4,
+            "scores": {
+              "p1a": 123,
+              "p1b": 12,
+              "p2a": 11,
+              "p2b": 1
+            },
+            "result": {
+              "winner": 1,
+              "loser": 4
+            },
+            "tiebreak": null
+          }
+        ],
+        "completed": true,
+        "courtAssignments": null
+      },
+      {
+        "type": "match",
+        "roundNum": 2,
+        "label": "Round 3",
+        "fixtures": [
+          {
+            "id": 0,
+            "courtNum": 1,
+            "team1id": 6,
+            "team2id": 7,
+            "scores": {
+              "p1a": "",
+              "p1b": "",
+              "p2a": "",
+              "p2b": ""
+            },
+            "result": null,
+            "tiebreak": null
+          },
+          {
+            "id": 1,
+            "courtNum": 2,
+            "team1id": 0,
+            "team2id": 2,
+            "scores": {
+              "p1a": "",
+              "p1b": "",
+              "p2a": "",
+              "p2b": ""
+            },
+            "result": null,
+            "tiebreak": null
+          },
+          {
+            "id": 2,
+            "courtNum": 3,
+            "team1id": 1,
+            "team2id": 3,
+            "scores": {
+              "p1a": "",
+              "p1b": "",
+              "p2a": "",
+              "p2b": ""
+            },
+            "result": null,
+            "tiebreak": null
+          },
+          {
+            "id": 3,
+            "courtNum": 4,
+            "team1id": 4,
+            "team2id": 5,
+            "scores": {
+              "p1a": "",
+              "p1b": "",
+              "p2a": "",
+              "p2b": ""
+            },
+            "result": null,
+            "tiebreak": null
+          }
+        ],
+        "completed": false,
+        "courtAssignments": null
+      }
+    ],
+    "currentRound": 2
+  }
+}
