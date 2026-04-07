@@ -1,252 +1,472 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Climb the Court — OBS Overlay</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+<meta charset="UTF-8"/>
+<title>CTC Live</title>
 <style>
-:root {
-  --grass:#1a6b2e; --grass-light:#2d9e47; --grass-bright:#3dbd58;
-  --accent:#4eff7a; --accent2:#b8ff6a; --gold:#f0e040;
-  --dark:#0a1f0e; --dark2:#0f2a14; --card:#122b18; --card2:#163320;
-  --text:#e8ffe0; --muted:#7aad80;
-  --win:#3dbd58; --lose:#e05050;
-  --border:rgba(78,255,122,0.12);
-  --grad:linear-gradient(135deg,#b8ff6a 0%,#4eff7a 60%,#2d9e47 100%);
-}
-*{box-sizing:border-box;margin:0;padding:0;}
-html,body{
-  width:100%;height:100%;overflow:hidden;
-  background:var(--dark);
-  background-image:
-    radial-gradient(ellipse at top left,rgba(78,255,122,0.07) 0%,transparent 50%),
-    radial-gradient(ellipse at bottom right,rgba(45,158,71,0.10) 0%,transparent 50%);
-  color:var(--text);
-  font-family:'Outfit',sans-serif;
-}
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
 
-.overlay-wrap{
-  display:flex;
-  flex-direction:column;
-  height:100vh;
-  padding:1.2%;
-  gap:1%;
-}
+  body {
+    background: #07111f;
+    font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif;
+    color: #fff;
+    width: 100vw; height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
 
-/* ── HEADER ── */
-.overlay-header{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  flex-shrink:0;
-  padding:0.5% 1%;
-  background:linear-gradient(135deg,var(--dark2),var(--card));
-  border:1px solid var(--border);
-  border-radius:8px;
-  border-bottom:2px solid var(--grass-bright);
-}
-.overlay-logo{
-  font-family:'Bebas Neue',cursive;
-  font-size:clamp(1rem,2.5vw,2rem);
-  letter-spacing:0.12em;
-  background:var(--grad);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-  line-height:1;
-}
-.overlay-round{
-  font-family:'Bebas Neue',cursive;
-  font-size:clamp(0.8rem,1.8vw,1.5rem);
-  color:var(--muted);
-  letter-spacing:0.12em;
-}
-.overlay-status{
-  font-size:clamp(0.55rem,1vw,0.8rem);
-  color:var(--muted);
-  display:flex;align-items:center;gap:0.4rem;
-}
-.status-dot{
-  width:7px;height:7px;border-radius:50%;
-  background:var(--muted);
-  animation:pulse 2s infinite;
-}
-@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+  /* ── CONFETTI ── */
+  #confetti-canvas {
+    position: fixed; inset: 0;
+    pointer-events: none; z-index: 999;
+  }
 
-/* ── COURT GRID ── */
-.gfx-grid{
-  display:grid;
-  gap:1%;
-  flex:1;
-  min-height:0;
-}
-.gfx-court{
-  background:var(--card2);
-  border:1px solid var(--border);
-  border-radius:9px;
-  overflow:hidden;
-  display:flex;
-  flex-direction:column;
-  min-height:0;
-}
-.gfx-court-hdr{
-  background:linear-gradient(135deg,var(--grass),var(--grass-light));
-  padding:1.5% 3%;
-  display:flex;align-items:center;justify-content:space-between;
-  flex-shrink:0;
-}
-.gfx-court-hdr.gold{background:linear-gradient(135deg,#8b7700,#b8a000);}
-.gfx-court-name{
-  font-family:'Bebas Neue',cursive;
-  font-size:clamp(0.8rem,1.8vw,1.5rem);
-  color:#fff;letter-spacing:0.06em;
-}
-.gfx-body{
-  flex:1;display:flex;align-items:stretch;
-  padding:2% 3%;gap:2%;min-height:0;
-}
-.gfx-team{
-  flex:1;display:flex;flex-direction:column;justify-content:space-between;
-}
-.gfx-team-lbl{
-  font-family:'Bebas Neue',cursive;
-  font-size:clamp(0.6rem,1.1vw,0.95rem);
-  color:var(--muted);letter-spacing:0.1em;margin-bottom:3%;
-}
-.gfx-prow{
-  display:flex;align-items:center;justify-content:space-between;
-  background:rgba(255,255,255,0.05);border:1px solid var(--border);
-  border-radius:5px;padding:0 4%;height:2.2em;
-  flex-shrink:0;overflow:hidden;margin-bottom:2%;
-}
-.gfx-pname{
-  font-size:clamp(0.55rem,1vw,0.88rem);font-weight:600;
-  flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-}
-.gfx-pscore{
-  font-family:'Bebas Neue',cursive;
-  font-size:clamp(0.7rem,1.3vw,1.1rem);
-  color:var(--accent);min-width:2em;text-align:right;
-}
-.gfx-vs{
-  font-family:'Bebas Neue',cursive;
-  font-size:clamp(0.75rem,1.4vw,1.2rem);
-  color:var(--muted);
-  display:flex;align-items:center;padding:0 1%;align-self:center;
-}
-.gfx-divider{width:1px;background:var(--border);flex-shrink:0;align-self:stretch;}
-.gfx-total{
-  font-family:'Bebas Neue',cursive;
-  font-size:clamp(0.9rem,1.8vw,1.5rem);
-  color:var(--accent);text-align:center;margin-top:1%;
-}
-.gfx-result{
-  text-align:center;
-  font-family:'Bebas Neue',cursive;
-  font-size:clamp(0.75rem,1.4vw,1.2rem);
-  letter-spacing:0.07em;
-  border-top:1px solid var(--border);
-  padding:1.5% 0 1%;
-  flex-shrink:0;
-}
+  /* ── TOP BANNER ── */
+  #banner {
+    flex-shrink: 0;
+    background: linear-gradient(90deg, #040d1a, #0b1f3a, #040d1a);
+    border-bottom: 3px solid #c4973a;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 16px;
+    height: 52px;
+    gap: 10px;
+  }
+  .banner-logo { font-size: 20px; font-weight: 900; letter-spacing: 4px; color: #c4973a; white-space:nowrap; }
+  .banner-center { flex:1; text-align: center; line-height: 1.1; }
+  .banner-title { font-size: 18px; font-weight: 900; letter-spacing: 4px; color: #ddf0ff; text-transform: uppercase; }
+  .banner-sub { font-size: 11px; font-weight: 700; letter-spacing: 4px; color: #c4973a; text-transform: uppercase; }
+
+  /* ── ROUND NAV ── */
+  #round-nav {
+    flex-shrink: 0;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .rnav-btn {
+    background: #0d1e30; border: 2px solid #1e3a58; color: #4a8ab8;
+    font-family: inherit; font-size: 18px; font-weight: 900;
+    width: 36px; height: 36px; border-radius: 6px;
+    cursor: pointer; line-height: 1;
+    transition: all 0.15s;
+  }
+  .rnav-btn:hover:not(:disabled) { border-color: #c4973a; color: #c4973a; }
+  .rnav-btn:disabled { opacity: 0.25; cursor: default; }
+  #round-label {
+    font-size: 13px; font-weight: 800; letter-spacing: 2px;
+    color: #4a8ab8; text-transform: uppercase; white-space: nowrap;
+  }
+
+  /* ── COURTS GRID ── */
+  #courts-grid {
+    flex: 1; min-height: 0;
+    display: grid;
+    gap: 8px;
+    padding: 8px;
+  }
+
+  /* ── COURT CARD ── */
+  .court-card {
+    background: #080f1c;
+    border: 2px solid #16273f;
+    border-radius: 8px;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+  .court-card.gold-court { border-color: #c4973a; }
+
+  /* Court header */
+  .c-header {
+    flex-shrink: 0;
+    background: #0a1828;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 4px 10px;
+    border-bottom: 2px solid #16273f;
+  }
+  .gold-court .c-header { background: rgba(196,151,58,0.12); border-bottom-color: #c4973a; }
+  .c-num {
+    font-size: var(--hdr,14px); font-weight: 900;
+    letter-spacing: 3px; text-transform: uppercase;
+    color: #2a4a6a;
+  }
+  .gold-court .c-num { color: #c4973a; }
+  .c-status {
+    font-size: var(--hdr,11px); font-weight: 800;
+    letter-spacing: 2px; text-transform: uppercase;
+    padding: 2px 10px; border-radius: 20px;
+  }
+  .s-upcoming { color: #1e3a58; border: 1px solid #1e3a58; }
+  .s-live { color: #3dff6a; border: 1px solid #3dff6a; background: rgba(61,255,106,0.07); animation: pulse 2s infinite; }
+  .s-complete { color: #c4973a; border: 1px solid #c4973a; background: rgba(196,151,58,0.08); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+
+  /* ── MATCH BODY ── */
+  .match-body {
+    flex: 1; min-height: 0;
+    display: flex; flex-direction: column;
+  }
+
+  /* ── TEAM BLOCK ── */
+  .team-block {
+    flex: 1; min-height: 0;
+    display: flex; flex-direction: column;
+    justify-content: center;
+    padding: 4px 0;
+    position: relative;
+    transition: background 0.3s;
+  }
+  .team-block.winner { background: rgba(61,255,106,0.05); }
+  .team-block.loser { opacity: 0.35; }
+
+  /* Team name bar */
+  .team-name-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 10px 2px 10px;
+    border-bottom: 1px solid #0e1e30;
+    flex-shrink: 0;
+  }
+  .t-name {
+    font-size: var(--tname,20px); font-weight: 900;
+    text-transform: uppercase; letter-spacing: 1px;
+    color: #7aafdf;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    line-height: 1;
+  }
+  .winner .t-name { color: #3dff6a; text-shadow: 0 0 14px rgba(61,255,106,0.35); }
+
+  /* Winner tag */
+  .win-tag {
+    flex-shrink: 0;
+    background: #3dff6a; color: #050e1a;
+    font-size: var(--wtag,9px); font-weight: 900; letter-spacing: 2px;
+    padding: 2px 8px; border-radius: 20px;
+    margin-left: 8px; white-space: nowrap;
+  }
+
+  /* Player rows */
+  .player-rows {
+    flex: 1; display: flex; flex-direction: column;
+    justify-content: space-evenly;
+    padding: 2px 0;
+  }
+  .player-row {
+    display: flex; align-items: center;
+    padding: 0 10px 0 16px;
+    flex: 1;
+    min-height: 0;
+  }
+  .p-name {
+    flex: 1; min-width: 0;
+    font-size: var(--pname,26px); font-weight: 800;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    color: #ddeeff;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    line-height: 1;
+  }
+  .winner .p-name { color: #a8ffc4; }
+  .p-score-box {
+    flex-shrink: 0;
+    font-size: var(--pscore,28px); font-weight: 900;
+    color: #3a6a9a;
+    background: #0d1e30;
+    border: 1px solid #1a3050;
+    border-radius: 4px;
+    min-width: var(--sbox,44px);
+    text-align: center;
+    line-height: 1;
+    padding: 1px 6px;
+    margin-left: 8px;
+  }
+  .winner .p-score-box { color: #3dff6a; border-color: rgba(61,255,106,0.4); background: rgba(61,255,106,0.07); }
+
+  /* Total row */
+  .total-row {
+    display: flex; align-items: center; justify-content: flex-end;
+    padding: 2px 10px 3px 10px;
+    flex-shrink: 0;
+    border-top: 1px solid #0e1e30;
+  }
+  .total-label {
+    font-size: var(--tlabel,9px); font-weight: 700;
+    letter-spacing: 3px; color: #2a4a6a;
+    text-transform: uppercase; margin-right: 6px;
+  }
+  .total-score {
+    font-size: var(--tscore,26px); font-weight: 900;
+    color: #7aafdf;
+    background: #0d1e30;
+    border: 2px solid #1e3a58;
+    border-radius: 5px;
+    min-width: var(--sbox,44px);
+    text-align: center;
+    line-height: 1;
+    padding: 2px 8px;
+  }
+  .winner .total-score {
+    color: #3dff6a;
+    background: rgba(61,255,106,0.08);
+    border-color: #3dff6a;
+    box-shadow: 0 0 10px rgba(61,255,106,0.2);
+  }
+
+  /* VS divider */
+  .vs-bar {
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    height: var(--vs-h,16px);
+    background: #060d18;
+  }
+  .vs-bar::before, .vs-bar::after {
+    content: ''; flex: 1; height: 1px;
+    background: linear-gradient(90deg, transparent, #1e3a58);
+  }
+  .vs-bar::after { background: linear-gradient(90deg, #1e3a58, transparent); }
+  .vs-text {
+    font-size: var(--vs-size,10px); font-weight: 900;
+    letter-spacing: 4px; color: #2a4a6a;
+    padding: 0 10px;
+  }
+
+  /* Waiting */
+  .waiting-msg {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    font-size: 22px; font-weight: 700; letter-spacing: 4px;
+    color: #1e3a58; text-transform: uppercase;
+  }
 </style>
 </head>
 <body>
-<div class="overlay-wrap">
-  <div class="overlay-header">
-    <span style="font-size:clamp(0.9rem,2vw,1.6rem)">🎾</span>
-    <div class="overlay-logo">Climb the Court</div>
-    <div class="overlay-round" id="overlay-round">—</div>
-    <div class="overlay-status">
-      <div class="status-dot" id="status-dot"></div>
-      <span id="status-txt">Loading…</span>
-    </div>
+
+<canvas id="confetti-canvas"></canvas>
+
+<div id="banner">
+  <div class="banner-logo">🎾 CTC</div>
+  <div class="banner-center">
+    <div class="banner-title" id="banner-title">CLIMB THE COURT</div>
+    <div class="banner-sub" id="banner-sub">—</div>
   </div>
-  <div class="gfx-grid" id="grid"></div>
+  <div id="round-nav">
+    <button class="rnav-btn" id="btn-prev" onclick="changeRound(-1)">◀</button>
+    <div id="round-label">—</div>
+    <button class="rnav-btn" id="btn-next" onclick="changeRound(1)">▶</button>
+  </div>
 </div>
 
+<div id="courts-grid"></div>
+
 <script>
-function escHtml(str){
-  if(!str)return'';
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
+const CTC_KEY = 'ctc_live';
+let currentState = null;
+let currentRoundIdx = -1;
+let confettiTriggered = new Set();
 
-async function load(){
-  try{
-    const resp=await fetch('ctc_data.json?'+Date.now());
-    if(!resp.ok)throw new Error('HTTP '+resp.status);
-    const data=await resp.json();
-    const s=data.state;
-    if(!s||!s.launched){
-      document.getElementById('grid').innerHTML='<div style="text-align:center;padding:3rem;color:var(--muted);font-size:1rem">Waiting for tournament data…</div>';
-      setStatus(false,'No tournament data');return;
-    }
+// ── BroadcastChannel ──
+const bc = new BroadcastChannel('ctc_live');
+bc.onmessage = e => {
+  if (e.data?.type === 'state_update') applyState(e.data.state);
+};
 
-    const r=s.rounds[s.currentRound]||s.rounds[s.rounds.length-1];
-    document.getElementById('overlay-round').textContent=r?r.label:'—';
+// ── Fallback poll localStorage every 2s ──
+setInterval(() => {
+  try {
+    const raw = localStorage.getItem(CTC_KEY);
+    if (raw) applyState(JSON.parse(raw));
+  } catch(e){}
+}, 2000);
 
-    const courts=s.numPlayers/4;
-    const fixtures=r?r.fixtures:[];
-    const cols=Math.min(courts,4);
-    const rows=Math.ceil(courts/cols);
-    document.getElementById('grid').style.gridTemplateColumns=`repeat(${cols},1fr)`;
-    if(rows>1) document.getElementById('grid').style.gridTemplateRows=`repeat(${rows},1fr)`;
+// ── Initial load ──
+try {
+  const raw = localStorage.getItem(CTC_KEY);
+  if (raw) applyState(JSON.parse(raw));
+} catch(e){}
 
-    let html='';
-    fixtures.forEach(f=>{
-      const t1=s.teams[f.team1id],t2=s.teams[f.team2id];
-      const p1a=s.players[t1.p1id],p1b=s.players[t1.p2id];
-      const p2a=s.players[t2.p1id],p2b=s.players[t2.p2id];
-      const t1tot=(parseInt(f.scores.p1a)||0)+(parseInt(f.scores.p1b)||0);
-      const t2tot=(parseInt(f.scores.p2a)||0)+(parseInt(f.scores.p2b)||0);
-      const label=r.type==='seeding'?`Seeding #${f.id+1}`:`Court ${f.courtNum}`;
-      const isTop=f.courtNum===1&&r.type==='match';
-
-      let resultHtml='';
-      if(f.result){
-        const w=s.teams[f.result.winner];
-        resultHtml=`<div class="gfx-result" style="color:var(--win)">✓ ${escHtml(w.name)} Win</div>`;
-      }
-
-      html+=`<div class="gfx-court">
-        <div class="gfx-court-hdr ${isTop?'gold':''}">
-          <span class="gfx-court-name">${label}</span>
-          ${isTop?'<span style="font-size:0.65em;color:rgba(255,255,255,0.8)">🏆 TOP</span>':''}
-        </div>
-        <div class="gfx-body">
-          <div class="gfx-team">
-            <div class="gfx-team-lbl">${escHtml(t1.name)}</div>
-            <div class="gfx-prow"><span class="gfx-pname">${escHtml(p1a.name)}</span><span class="gfx-pscore">${f.scores.p1a!==''?f.scores.p1a:'—'}</span></div>
-            <div class="gfx-prow"><span class="gfx-pname">${escHtml(p1b.name)}</span><span class="gfx-pscore">${f.scores.p1b!==''?f.scores.p1b:'—'}</span></div>
-            <div class="gfx-total">${f.scores.p1a!==''||f.scores.p1b!==''?t1tot:''}</div>
-          </div>
-          <div class="gfx-divider"></div>
-          <div class="gfx-vs">VS</div>
-          <div class="gfx-divider"></div>
-          <div class="gfx-team">
-            <div class="gfx-team-lbl">${escHtml(t2.name)}</div>
-            <div class="gfx-prow"><span class="gfx-pname">${escHtml(p2a.name)}</span><span class="gfx-pscore">${f.scores.p2a!==''?f.scores.p2a:'—'}</span></div>
-            <div class="gfx-prow"><span class="gfx-pname">${escHtml(p2b.name)}</span><span class="gfx-pscore">${f.scores.p2b!==''?f.scores.p2b:'—'}</span></div>
-            <div class="gfx-total">${f.scores.p2a!==''||f.scores.p2b!==''?t2tot:''}</div>
-          </div>
-        </div>
-        ${resultHtml}
-      </div>`;
-    });
-
-    document.getElementById('grid').innerHTML=html;
-    setStatus(true,'Live · '+new Date().toLocaleTimeString());
-  }catch(e){
-    setStatus(false,'Waiting for ctc_data.json');
-    document.getElementById('grid').innerHTML='<div style="text-align:center;padding:3rem;color:var(--muted);font-size:0.9rem">Export ctc_data.json from the main app to show live data.</div>';
+function applyState(state) {
+  const rounds = state?.rounds || [];
+  // If state changed, stay on current round index if valid, else jump to latest
+  if (!currentState || rounds.length !== (currentState.rounds||[]).length) {
+    // New round added — jump to latest
+    currentRoundIdx = rounds.length - 1;
   }
+  currentState = state;
+  if (currentRoundIdx < 0 && rounds.length > 0) currentRoundIdx = rounds.length - 1;
+  renderRound();
 }
 
-function setStatus(ok,msg){
-  document.getElementById('status-dot').style.background=ok?'var(--win)':'var(--lose)';
-  document.getElementById('status-txt').textContent=msg;
+function changeRound(dir) {
+  const rounds = currentState?.rounds || [];
+  currentRoundIdx = Math.max(0, Math.min(rounds.length - 1, currentRoundIdx + dir));
+  renderRound();
 }
 
-load();
-setInterval(load,2000);
+function renderRound() {
+  const state = currentState;
+  const grid = document.getElementById('courts-grid');
+
+  if (!state?.launched) {
+    grid.innerHTML = '<div class="waiting-msg">Waiting for tournament to launch…</div>';
+    document.getElementById('banner-sub').textContent = '—';
+    document.getElementById('round-label').textContent = '—';
+    document.getElementById('btn-prev').disabled = true;
+    document.getElementById('btn-next').disabled = true;
+    return;
+  }
+
+  const rounds = state.rounds || [];
+  if (!rounds.length) {
+    grid.innerHTML = '<div class="waiting-msg">No rounds yet</div>';
+    return;
+  }
+
+  // Clamp index
+  currentRoundIdx = Math.max(0, Math.min(rounds.length - 1, currentRoundIdx));
+  const r = rounds[currentRoundIdx];
+
+  // Nav buttons
+  document.getElementById('btn-prev').disabled = currentRoundIdx <= 0;
+  document.getElementById('btn-next').disabled = currentRoundIdx >= rounds.length - 1;
+  document.getElementById('round-label').textContent =
+    r.type === 'seeding' ? 'SEEDING' : `ROUND ${r.roundNum} / ${rounds.length}`;
+
+  // Banner
+  document.getElementById('banner-title').textContent = state.tournamentName || 'CLIMB THE COURT';
+  document.getElementById('banner-sub').textContent =
+    r.type === 'seeding' ? 'SEEDING ROUND' : `ROUND ${r.roundNum}`;
+
+  const fixtures = r.fixtures || [];
+  const isSeeding = r.type === 'seeding';
+
+  // Confetti on winner
+  fixtures.forEach(fx => {
+    if (fx.locked && fx.winner && !confettiTriggered.has(fx.id)) {
+      confettiTriggered.add(fx.id);
+      launchConfetti();
+    }
+  });
+
+  // Grid layout
+  const n = fixtures.length;
+  if (!n) { grid.innerHTML = '<div class="waiting-msg">No fixtures</div>'; return; }
+  const cols = n <= 1 ? 1 : n <= 2 ? 2 : n <= 4 ? 2 : n <= 6 ? 3 : 4;
+  const rows = Math.ceil(n / cols);
+  grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  grid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+
+  // Responsive font vars
+  const cardH = (window.innerHeight - 60) / rows;
+  const cardW = (window.innerWidth - (cols + 1) * 8) / cols;
+  const hdr    = clamp(cardH * 0.04,  9, 15);
+  const tname  = clamp(cardH * 0.09, 10, 20);
+  const pname  = clamp(Math.min(cardH * 0.18, cardW * 0.12), 13, 46);
+  const pscore = clamp(cardH * 0.16, 13, 46);
+  const tscore = clamp(cardH * 0.14, 12, 38);
+  const tlabel = clamp(cardH * 0.035, 7, 12);
+  const wtag   = clamp(cardH * 0.034, 7, 12);
+  const sbox   = clamp(cardH * 0.17, 32, 66);
+  const vsH    = clamp(cardH * 0.06, 12, 24);
+  const vsSize = clamp(cardH * 0.038, 8, 14);
+
+  const cv = `--hdr:${hdr}px;--tname:${tname}px;--pname:${pname}px;--pscore:${pscore}px;--tscore:${tscore}px;--tlabel:${tlabel}px;--wtag:${wtag}px;--sbox:${sbox}px;--vs-h:${vsH}px;--vs-size:${vsSize}px;`;
+
+  grid.innerHTML = fixtures.map((fx, idx) => {
+    const courtLabel = isSeeding ? `MATCH ${idx + 1}` : `COURT ${fx.courtNum ?? idx + 1}`;
+    const isGold = !isSeeding && fx.courtNum === 1;
+    const t1 = getTeam(state, fx.team1id);
+    const t2 = getTeam(state, fx.team2id);
+    const hasTeams = !!(t1 && t2);
+    const status = !hasTeams ? 'upcoming' : fx.locked ? 'complete' : 'live';
+    const statusLabel = status === 'upcoming' ? '● UPCOMING' : status === 'live' ? '● LIVE' : '✓ COMPLETE';
+    const isW1 = fx.locked && fx.winner === 'team1';
+    const isW2 = fx.locked && fx.winner === 'team2';
+
+    return `
+    <div class="court-card${isGold ? ' gold-court' : ''}" style="${cv}">
+      <div class="c-header">
+        <div class="c-num">${esc(courtLabel)}</div>
+        <div class="c-status s-${status}">${statusLabel}</div>
+      </div>
+      <div class="match-body">
+        ${teamBlock(state, t1, fx, 'team1', isW1, isGold && !isW1 && fx.locked)}
+        <div class="vs-bar"><span class="vs-text">VS</span></div>
+        ${teamBlock(state, t2, fx, 'team2', isW2, isW1 && fx.locked)}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function teamBlock(state, team, fx, side, isWinner, isLoser) {
+  if (!team) return `<div class="team-block"><div class="waiting-msg" style="font-size:13px">TBD</div></div>`;
+
+  // Get player objects using p1id / p2id on the team
+  const pa = getPlayer(state, team.p1id);
+  const pb = getPlayer(state, team.p2id);
+  const players = [pa, pb].filter(p => p);
+
+  // Scores: p1a/p1b = team1 player a/b scores, p2a/p2b = team2
+  const sa = side === 'team1' ? (fx.scores?.p1a ?? '') : (fx.scores?.p2a ?? '');
+  const sb = side === 'team1' ? (fx.scores?.p1b ?? '') : (fx.scores?.p2b ?? '');
+  const scores = [sa, sb];
+
+  const total = scores.reduce((s, v) => { const n = parseInt(v); return s + (isNaN(n) ? 0 : n); }, 0);
+  const hasScores = sa !== '' || sb !== '';
+
+  const playerRows = players.map((p, i) => `
+    <div class="player-row">
+      <div class="p-name">${esc(p?.name || '—')}</div>
+      <div class="p-score-box">${scores[i] !== '' ? scores[i] : '–'}</div>
+    </div>`).join('');
+
+  return `
+  <div class="team-block${isWinner ? ' winner' : isLoser ? ' loser' : ''}">
+    <div class="team-name-bar">
+      <div class="t-name">${esc(team.name)}</div>
+      ${isWinner ? '<div class="win-tag">🏆 WINNER</div>' : ''}
+    </div>
+    <div class="player-rows">${playerRows}</div>
+    <div class="total-row">
+      <div class="total-label">TOTAL</div>
+      <div class="total-score">${hasScores ? total : '–'}</div>
+    </div>
+  </div>`;
+}
+
+function getTeam(state, id) { return (state.teams || []).find(t => t.id === id); }
+function getPlayer(state, id) { return (state.players || []).find(p => p.id === id); }
+function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── CONFETTI ──
+function launchConfetti() {
+  const canvas = document.getElementById('confetti-canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+  const pieces = Array.from({length:180}, () => ({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height - canvas.height,
+    vx: (Math.random()-0.5)*3,
+    vy: Math.random()*4+2,
+    r: Math.random()*6+4,
+    color: ['#3dff6a','#c4973a','#4da8ff','#ff5e85','#fff','#ffe066'][Math.floor(Math.random()*6)],
+    angle: Math.random()*360,
+    spin: (Math.random()-0.5)*6
+  }));
+  let frame = 0;
+  function draw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    pieces.forEach(p => {
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.angle*Math.PI/180);
+      ctx.fillStyle = p.color; ctx.globalAlpha = 0.85;
+      ctx.fillRect(-p.r/2,-p.r/2,p.r,p.r*1.6);
+      ctx.restore();
+      p.x+=p.vx; p.y+=p.vy; p.angle+=p.spin;
+      if (p.y>canvas.height+20) { p.y=-20; p.x=Math.random()*canvas.width; }
+    });
+    frame++;
+    if (frame<300) requestAnimationFrame(draw);
+    else ctx.clearRect(0,0,canvas.width,canvas.height);
+  }
+  draw();
+}
 </script>
 </body>
 </html>
