@@ -469,7 +469,6 @@ function updateConfig() {
 }
 function onPlayersChange() {
   const n=parseInt(document.getElementById('cfg-players').value);
-  S.numPlayers=n;
   S.players=Array.from({length:n},(_,i)=>({id:i,name:S.players[i]?.name||''}));
   S.teams=Array.from({length:n/2},(_,i)=>({id:i,name:`Team ${i+1}`,p1id:-1,p2id:-1}));
   updateConfig();
@@ -1147,34 +1146,30 @@ function renderPlayerLB() {
   (S.players || []).forEach(p => {
     if (p && p.id !== undefined) stats[p.id] = { pid: p.id, wins: 0, losses: 0, totalScore: 0 };
   });
-  // Walk all fixtures (seeding + match rounds)
+  // Walk all completed fixtures
   (S.rounds || []).forEach(round => {
     (round.fixtures || []).forEach(fix => {
-      const sc = fix.scores || {};
-      const t1 = S.teams[fix.team1id];
-      const t2 = S.teams[fix.team2id];
-      if (!t1 || !t2) return;
-      // Accumulate individual player scores
-      if (sc.p1a !== '' && sc.p1a !== undefined && stats[t1.p1id] !== undefined)
-        stats[t1.p1id].totalScore += parseInt(sc.p1a) || 0;
-      if (sc.p1b !== '' && sc.p1b !== undefined && stats[t1.p2id] !== undefined)
-        stats[t1.p2id].totalScore += parseInt(sc.p1b) || 0;
-      if (sc.p2a !== '' && sc.p2a !== undefined && stats[t2.p1id] !== undefined)
-        stats[t2.p1id].totalScore += parseInt(sc.p2a) || 0;
-      if (sc.p2b !== '' && sc.p2b !== undefined && stats[t2.p2id] !== undefined)
-        stats[t2.p2id].totalScore += parseInt(sc.p2b) || 0;
-      // Count wins/losses from confirmed results
-      if (fix.result) {
-        const winTeam = S.teams[fix.result.winner];
-        const loseTeam = S.teams[fix.result.loser];
-        if (winTeam) {
-          if (stats[winTeam.p1id] !== undefined) stats[winTeam.p1id].wins++;
-          if (stats[winTeam.p2id] !== undefined) stats[winTeam.p2id].wins++;
-        }
-        if (loseTeam) {
-          if (stats[loseTeam.p1id] !== undefined) stats[loseTeam.p1id].losses++;
-          if (stats[loseTeam.p2id] !== undefined) stats[loseTeam.p2id].losses++;
-        }
+      if (fix.scoreA === undefined || fix.scoreA === null || fix.scoreA === '') return;
+      const sA = parseInt(fix.scoreA) || 0;
+      const sB = parseInt(fix.scoreB) || 0;
+      const aWon = sA > sB;
+      const teamA = S.teams.find(t => t.id === fix.teamAid);
+      const teamB = S.teams.find(t => t.id === fix.teamBid);
+      if (teamA) {
+        [teamA.p1id, teamA.p2id].forEach(pid => {
+          if (pid !== undefined && stats[pid]) {
+            stats[pid].totalScore += sA;
+            if (aWon) stats[pid].wins++; else stats[pid].losses++;
+          }
+        });
+      }
+      if (teamB) {
+        [teamB.p1id, teamB.p2id].forEach(pid => {
+          if (pid !== undefined && stats[pid]) {
+            stats[pid].totalScore += sB;
+            if (!aWon) stats[pid].wins++; else stats[pid].losses++;
+          }
+        });
       }
     });
   });
