@@ -471,7 +471,7 @@ function onPlayersChange() {
   const n=parseInt(document.getElementById('cfg-players').value);
   S.numPlayers=n;
   S.players=Array.from({length:n},(_,i)=>({id:i,name:S.players[i]?.name||''}));
-  S.teams=Array.from({length:n/2},(_,i)=>({id:i,name:`Team ${i+1}`,p1id:-1,p2id:-1}));
+  S.teams=Array.from({length:n/2},(_,i)=>({id:i,name:`Team ${String(i+1).padStart(2,'0')}`,p1id:-1,p2id:-1}));
   updateConfig();
 }
 function goStep(s) {
@@ -511,7 +511,7 @@ function validatePlayers() {
 function renderPartnersStep() {
   const pairs=S.numPlayers/2||S.teams.length;
   if(S.teams.length!==pairs)
-    S.teams=Array.from({length:pairs},(_,i)=>({id:i,name:`Team ${i+1}`,p1id:-1,p2id:-1}));
+    S.teams=Array.from({length:pairs},(_,i)=>({id:i,name:`Team ${String(i+1).padStart(2,'0')}`,p1id:-1,p2id:-1}));
 
   let h='<div class="teams-grid">';
   for(let i=0;i<pairs;i++){
@@ -528,7 +528,7 @@ function renderPartnersStep() {
     }).join('');
 
     h+=`<div class="team-card">
-      <div class="team-card-header"><span>Team ${i+1}</span>
+      <div class="team-card-header"><span>Team ${String(i+1).padStart(2,'0')}</span>
         <input class="form-input" style="width:110px;font-size:0.78rem;padding:0.25rem 0.5rem" value="${x(t.name)}" oninput="S.teams[${i}].name=this.value">
       </div>
       <div class="team-player-row"><span class="dot"></span>
@@ -552,7 +552,7 @@ function randomisePartners() {
   const n=parseInt(document.getElementById('cfg-players').value)||S.numPlayers;
   const sh=shuffle([...Array(n).keys()]);
   for(let i=0;i<n/2;i++){
-    S.teams[i]=S.teams[i]||{id:i,name:`Team ${i+1}`,p1id:-1,p2id:-1};
+    S.teams[i]=S.teams[i]||{id:i,name:`Team ${String(i+1).padStart(2,'0')}`,p1id:-1,p2id:-1};
     S.teams[i].p1id=sh[i*2]; S.teams[i].p2id=sh[i*2+1];
   }
   renderPartnersStep();
@@ -1412,7 +1412,7 @@ function closeConf(){document.getElementById('conf-modal').classList.remove('ope
 // ═══════════════════════════════════════════════════════
 updateConfig();
 S.players=Array.from({length:16},(_,i)=>({id:i,name:''}));
-S.teams=Array.from({length:8},(_,i)=>({id:i,name:`Team ${i+1}`,p1id:-1,p2id:-1}));
+S.teams=Array.from({length:8},(_,i)=>({id:i,name:`Team ${String(i+1).padStart(2,'0')}`,p1id:-1,p2id:-1}));
 document.getElementById('cfg-players').addEventListener('change',onPlayersChange);
 document.getElementById('cfg-rounds').addEventListener('change',updateConfig);
 </script>
