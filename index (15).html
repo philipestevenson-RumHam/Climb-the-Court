@@ -769,7 +769,7 @@ function renderScoringView(r) {
 
   h+=`</tbody></table>`;
   if(r.type==='seeding'&&!r.completed)
-    h+=`<div style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap"><button class="btn btn-accent" onclick="lockSeeding()">🔒 Lock Seeding & Assign Courts</button><button class="btn btn-gold" onclick="randomSeeding()" title="Ignore scores and assign courts at random">🎲 Random Seedings</button></div>`;
+    h+=`<div style="margin-top:1rem"><button class="btn btn-accent" onclick="lockSeeding()">🔒 Lock Seeding & Assign Courts</button></div>`;
   h+=`</div>`;
   document.getElementById('round-content').innerHTML=h;
 }
@@ -850,7 +850,7 @@ function renderSeedingPage(r) {
       </tr>`;
     });
     h+=`</tbody></table>
-    <div style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap"><button class="btn btn-accent" onclick="lockSeeding()">🔒 Lock Scores & Assign Courts</button><button class="btn btn-gold" onclick="randomSeeding()" title="Ignore scores and assign courts at random">🎲 Random Seedings</button></div>`;
+    <div style="margin-top:1rem"><button class="btn btn-accent" onclick="lockSeeding()">🔒 Lock Scores & Assign Courts</button></div>`;
   }
   h+=`</div>`;
   document.getElementById('round-content').innerHTML=h;
@@ -936,7 +936,7 @@ function renderSheet() {
   const cur=S.rounds[S.currentRound];
   let acts='';
   if(cur&&!cur.completed){
-    if(cur.type==='seeding') acts=`<button class="btn btn-accent" onclick="lockSeeding()">🔒 Lock Seeding & Assign Courts</button> <button class="btn btn-gold" onclick="randomSeeding()" title="Ignore scores and assign courts at random">🎲 Random Seedings</button>`;
+    if(cur.type==='seeding') acts=`<button class="btn btn-accent" onclick="lockSeeding()">🔒 Lock Seeding & Assign Courts</button>`;
     else acts=`<button class="btn btn-ghost btn-sm" onclick="showPanel('rounds');switchView('courts')">→ Go to Rounds to confirm results</button>`;
   }
   document.getElementById('score-actions').innerHTML=acts;
@@ -1013,27 +1013,6 @@ function lockSeeding() {
   }
   if(tbs.length){_tbCtx={ranking,r,tbs:[...tbs]};showSeedTB();}
   else finaliseSeeding(ranking,r);
-}
-
-function randomSeeding(){
-  openConf(
-    '🎲 Random Seedings',
-    'Assign courts randomly, ignoring all scores? This cannot be undone.',
-    ()=>{
-      const r=S.rounds[0];
-      const tids=S.teams.map((_,i)=>i);
-      for(let i=tids.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[tids[i],tids[j]]=[tids[j],tids[i]];}
-      const ranking=tids.map(tid=>({tid,total:0,maxI:0,adj:0}));
-      finaliseSeeding(ranking,r);
-    }
-  );
-}
-function openConf(title,body,onOk){
-  document.getElementById('conf-title').textContent=title;
-  document.getElementById('conf-body').textContent=body;
-  const btn=document.getElementById('conf-ok');
-  btn.onclick=()=>{closeConf();onOk();};
-  document.getElementById('conf-modal').classList.add('open');
 }
 
 let _tbCtx=null;

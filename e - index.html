@@ -361,13 +361,9 @@ select.form-input option{background:var(--dark2)}
 <div id="panel-scores" class="panel">
   <div class="card">
     <div class="card-header">
-      <div><div class="card-title">📋 Score Sheet</div><div class="card-subtitle">All players · all rounds. Enter scores here — they sync to rounds automatically.</div></div>
-      <div style="display:flex;gap:0.4rem;margin-left:auto">
-        <button id="sheet-sort-input" class="btn btn-sm btn-accent" onclick="setSheetSort('input')" title="Input order">🔢 Input Order</button>
-        <button id="sheet-sort-alpha" class="btn btn-sm btn-ghost" onclick="setSheetSort('alpha')" title="Alphabetical">🔤 A–Z</button>
-      </div>
+      <div><div class="card-title">📋 Score Sheet</div><div class="card-subtitle">All players in entry order · all rounds. Enter scores here — they sync to rounds automatically.</div></div>
     </div>
-    <div class="alert alert-info"><span>ℹ️</span><span>Toggle sort order above. Locked rounds are greyed out.</span></div>
+    <div class="alert alert-info"><span>ℹ️</span><span>Players always appear in the same order (the order you entered them). Enter each column per round. Locked rounds are greyed out.</span></div>
     <div class="score-sheet-outer" id="score-sheet-outer">
       <p style="color:var(--muted);font-size:0.88rem;padding:0.5rem">Launch the tournament to view the score sheet.</p>
     </div>
@@ -438,7 +434,7 @@ select.form-input option{background:var(--dark2)}
 //  STATE
 // ═══════════════════════════════════════════════════════
 let S = {
-  launched:false,sheetSort:'input', name:'Climb the Court', numPlayers:16, numRounds:5,
+  launched:false, name:'Climb the Court', numPlayers:16, numRounds:5,
   players:[], // [{id,name}]
   teams:[],   // [{id,name,p1id,p2id}]
   rounds:[],  // see below
@@ -646,12 +642,12 @@ function renderCourtsView(r) {
   r.fixtures.forEach(f=>h+=buildCourtCard(f,r));
   h+=`</div>`;
   if(!r.completed){
-
+    const all=r.fixtures.every(f=>f.result!==null);
     h+=`<div style="margin-top:1rem;display:flex;gap:0.6rem;flex-wrap:wrap">
       <button class="btn btn-ghost btn-sm" onclick="populateDummyScores(${r.roundNum})">🎲 Dummy Scores</button>
-      <button class="btn btn-accent"  onclick="lockRound(${r.roundNum})">🔒 Lock Round & Advance</button>
+      <button class="btn btn-accent" ${all?'':'disabled'} onclick="lockRound(${r.roundNum})">🔒 Lock Round & Advance</button>
     </div>`;
-    
+    if(!all) h+=`<p style="font-size:0.78rem;color:var(--muted);margin-top:0.5rem">Confirm all results to lock the round.</p>`;
   } else {
     if(r.roundNum<S.numRounds)
       h+=`<div style="margin-top:1rem"><button class="btn btn-primary" onclick="startRound(${r.roundNum+1})">Start Round ${r.roundNum+2} →</button></div>`;
@@ -769,7 +765,7 @@ function renderScoringView(r) {
 
   h+=`</tbody></table>`;
   if(r.type==='seeding'&&!r.completed)
-    h+=`<div style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap"><button class="btn btn-accent" onclick="lockSeeding()">🔒 Lock Seeding & Assign Courts</button><button class="btn btn-gold" onclick="randomSeeding()" title="Ignore scores and assign courts at random">🎲 Random Seedings</button></div>`;
+    h+=`<div style="margin-top:1rem"><button class="btn btn-accent" onclick="lockSeeding()">🔒 Lock Seeding & Assign Courts</button></div>`;
   h+=`</div>`;
   document.getElementById('round-content').innerHTML=h;
 }
@@ -850,7 +846,7 @@ function renderSeedingPage(r) {
       </tr>`;
     });
     h+=`</tbody></table>
-    <div style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap"><button class="btn btn-accent" onclick="lockSeeding()">🔒 Lock Scores & Assign Courts</button><button class="btn btn-gold" onclick="randomSeeding()" title="Ignore scores and assign courts at random">🎲 Random Seedings</button></div>`;
+    <div style="margin-top:1rem"><button class="btn btn-accent" onclick="lockSeeding()">🔒 Lock Scores & Assign Courts</button></div>`;
   }
   h+=`</div>`;
   document.getElementById('round-content').innerHTML=h;
@@ -871,15 +867,9 @@ function setSeedS(fid,slot,val){
 // ═══════════════════════════════════════════════════════
 //  MASTER SCORE SHEET
 // ═══════════════════════════════════════════════════════
-function setSheetSort(mode){
-  S.sheetSort=mode;
-  document.getElementById('sheet-sort-input').className='btn btn-sm '+(mode==='input'?'btn-accent':'btn-ghost');
-  document.getElementById('sheet-sort-alpha').className='btn btn-sm '+(mode==='alpha'?'btn-accent':'btn-ghost');
-  renderSheet();
-}
 function renderSheet() {
   if(!S.launched)return;
-  const players=[...S.players].sort((a,b)=>S.sheetSort==='alpha'?a.name.localeCompare(b.name):a.id-b.id);
+  const players=[...S.players].sort((a,b)=>a.id-b.id);
   const rounds=S.rounds;
 
   // Build col headers
@@ -936,7 +926,7 @@ function renderSheet() {
   const cur=S.rounds[S.currentRound];
   let acts='';
   if(cur&&!cur.completed){
-    if(cur.type==='seeding') acts=`<button class="btn btn-accent" onclick="lockSeeding()">🔒 Lock Seeding & Assign Courts</button> <button class="btn btn-gold" onclick="randomSeeding()" title="Ignore scores and assign courts at random">🎲 Random Seedings</button>`;
+    if(cur.type==='seeding') acts=`<button class="btn btn-accent" onclick="lockSeeding()">🔒 Lock Seeding & Assign Courts</button>`;
     else acts=`<button class="btn btn-ghost btn-sm" onclick="showPanel('rounds');switchView('courts')">→ Go to Rounds to confirm results</button>`;
   }
   document.getElementById('score-actions').innerHTML=acts;
@@ -1004,36 +994,15 @@ function lockSeeding() {
     });
     return{tid,total,maxI,adj:0};
   });
-  ranking.sort((a,b)=>b.total-a.total||b.maxI-a.maxI||(b.total-b.maxI)-(a.total-a.maxI)||S.teams[a.tid].name.localeCompare(S.teams[b.tid].name));
+  ranking.sort((a,b)=>b.total-a.total||b.maxI-a.maxI);
   const tbs=[];
   for(let c=0;c<courts-1;c++){
     const bi=c*2+1;
     const a=ranking[bi],b=ranking[bi+1];
-    if(a.total===b.total&&a.maxI===b.maxI&&(a.total-a.maxI)===(b.total-b.maxI)&&S.teams[a.tid].name===S.teams[b.tid].name) tbs.push({bi,a,b});
+    if(a.total===b.total&&a.maxI===b.maxI) tbs.push({bi,a,b});
   }
   if(tbs.length){_tbCtx={ranking,r,tbs:[...tbs]};showSeedTB();}
   else finaliseSeeding(ranking,r);
-}
-
-function randomSeeding(){
-  openConf(
-    '🎲 Random Seedings',
-    'Assign courts randomly, ignoring all scores? This cannot be undone.',
-    ()=>{
-      const r=S.rounds[0];
-      const tids=S.teams.map((_,i)=>i);
-      for(let i=tids.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[tids[i],tids[j]]=[tids[j],tids[i]];}
-      const ranking=tids.map(tid=>({tid,total:0,maxI:0,adj:0}));
-      finaliseSeeding(ranking,r);
-    }
-  );
-}
-function openConf(title,body,onOk){
-  document.getElementById('conf-title').textContent=title;
-  document.getElementById('conf-body').textContent=body;
-  const btn=document.getElementById('conf-ok');
-  btn.onclick=()=>{closeConf();onOk();};
-  document.getElementById('conf-modal').classList.add('open');
 }
 
 let _tbCtx=null;
@@ -1057,7 +1026,7 @@ function resSeedTB(tidA,tidB,winner){
   const{ranking,r,tbs}=_tbCtx;
   const w=ranking.find(x=>x.tid===winner),l=ranking.find(x=>x.tid===(winner===tidA?tidB:tidA));
   if(w)w.adj=0.5;if(l)l.adj=0;
-  ranking.sort((a,b)=>(b.total+b.adj)-(a.total+a.adj)||b.maxI-a.maxI||(b.total-b.maxI)-(a.total-a.maxI)||S.teams[a.tid].name.localeCompare(S.teams[b.tid].name));
+  ranking.sort((a,b)=>(b.total+b.adj)-(a.total+a.adj)||b.maxI-a.maxI);
   tbs.shift();
   document.getElementById('tb-modal').classList.remove('open');
   if(tbs.length){showSeedTB();return}
@@ -1126,10 +1095,6 @@ function autoWinner(f){
   if(t1>t2)return f.team1id;if(t2>t1)return f.team2id;
   const m1=Math.max(a,b),m2=Math.max(c,d);
   if(m1>m2)return f.team1id;if(m2>m1)return f.team2id;
-  const s1=t1-m1,s2=t2-m2;
-  if(s1>s2)return f.team1id;if(s2>s1)return f.team2id;
-  const nc=S.teams[f.team1id].name.localeCompare(S.teams[f.team2id].name);
-  if(nc<0)return f.team1id;if(nc>0)return f.team2id;
   return null;
 }
 
@@ -1156,21 +1121,7 @@ function openTB(fid,rn){
 
 function lockRound(rn){
   const r=S.rounds[rn];
-  // Auto-confirm all fixtures with a clear winner
-  r.fixtures.forEach(f=>{
-    if(!f.result){
-      const w=autoWinner(f);
-      if(w!==null) f.result={winner:w,loser:f.team1id===w?f.team2id:f.team1id};
-    }
-  });
-  // Check for any remaining unresolved fixtures (genuine draws)
-  const draws=r.fixtures.filter(f=>!f.result);
-  if(draws.length){
-    const courts=draws.map(f=>'Court '+f.courtNum).join(', ');
-    alert2('Draw'+(draws.length>1?'s':'')+' on '+courts+' must be settled before locking. Use the ⚡ Resolve button on each draw, then click Lock Round again.','warning');
-    renderCourtsView(r);
-    return;
-  }
+  if(!r.fixtures.every(f=>f.result)){alert2('Confirm all results first.','danger');return}
   r.completed=true;renderRounds();renderSheet();
 }
 
