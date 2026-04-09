@@ -20,16 +20,17 @@
   --muted: #7aad80;
   --win: #3dbd58;
   --lose: #e05050;
+  --stay: #a0a0a0;
   --border: rgba(78,255,122,0.1);
   --grad: linear-gradient(135deg, #b8ff6a 0%, #4eff7a 60%, #2d9e47 100%);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{width:100%;height:100%;overflow:hidden}
 body{
-  background: var(--dark);
+  background:var(--dark);
   background-image:
-    radial-gradient(ellipse at top left, rgba(78,255,122,0.08) 0%, transparent 55%),
-    radial-gradient(ellipse at bottom right, rgba(45,158,71,0.10) 0%, transparent 55%);
+    radial-gradient(ellipse at top left,rgba(78,255,122,0.08) 0%,transparent 55%),
+    radial-gradient(ellipse at bottom right,rgba(45,158,71,0.10) 0%,transparent 55%);
   color:var(--text);
   font-family:'Outfit',sans-serif;
   display:flex;
@@ -40,7 +41,7 @@ body{
 
 /* ── HEADER ── */
 .lb-header{
-  padding:1rem 1.5rem 0.75rem;
+  padding:0.75rem 1.5rem 0.6rem;
   background:linear-gradient(135deg,var(--dark2),var(--card));
   border-bottom:2px solid var(--grass-bright);
   flex-shrink:0;
@@ -81,6 +82,51 @@ body{
   flex-shrink:0;
 }
 
+/* ── ROUND NAV ── */
+.round-nav{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:0.75rem;
+  padding:0.45rem 1.5rem;
+  background:var(--dark2);
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.round-nav button{
+  background:rgba(78,255,122,0.08);
+  border:1px solid var(--border);
+  border-radius:6px;
+  color:var(--accent);
+  font-family:'Bebas Neue',cursive;
+  font-size:1.2rem;
+  width:32px;height:32px;
+  cursor:pointer;
+  transition:background 0.15s;
+  display:flex;align-items:center;justify-content:center;
+}
+.round-nav button:hover{background:rgba(78,255,122,0.2);}
+.round-nav button:disabled{opacity:0.3;cursor:default;}
+.round-label{
+  font-family:'Bebas Neue',cursive;
+  font-size:1.15rem;
+  letter-spacing:0.1em;
+  color:var(--text);
+  min-width:180px;
+  text-align:center;
+}
+.round-status{
+  font-size:0.68rem;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  padding:0.15rem 0.5rem;
+  border-radius:4px;
+  font-weight:600;
+}
+.round-status.completed{background:rgba(61,189,88,0.15);color:var(--win);}
+.round-status.inprogress{background:rgba(240,224,64,0.15);color:var(--gold);}
+.round-status.upcoming{background:rgba(122,173,128,0.1);color:var(--muted);}
+
 /* ── TABS ── */
 .lb-tabs{
   display:flex;
@@ -109,19 +155,12 @@ body{
 .lb-tab.active{color:var(--accent);border-bottom-color:var(--grass-bright);}
 
 /* ── CONTENT ── */
-.lb-body{
-  flex:1;
-  overflow-y:auto;
-  padding:0;
-}
+.lb-body{flex:1;overflow-y:auto;padding:0;}
 .lb-page{display:none;}
 .lb-page.active{display:block;}
 
 /* ── TABLE ── */
-.lb-table{
-  width:100%;
-  border-collapse:collapse;
-}
+.lb-table{width:100%;border-collapse:collapse;}
 .lb-table th{
   background:var(--dark2);
   color:var(--muted);
@@ -160,6 +199,12 @@ body{
   letter-spacing:0.05em;
 }
 
+/* Movement */
+.move-up{color:#4eff7a;font-size:1rem;}
+.move-down{color:#e05050;font-size:1rem;}
+.move-stay{color:#a0a0a0;font-size:1rem;}
+.move-tbd{color:#7aad80;font-size:0.8rem;}
+
 /* ── COURTS VIEW ── */
 .courts-grid{
   display:grid;
@@ -191,7 +236,6 @@ body{
 .team-players{font-size:0.7rem;color:var(--muted);}
 .team-total{font-family:'Bebas Neue',cursive;font-size:1.2rem;color:var(--accent);}
 
-/* ── NO DATA ── */
 .no-data{
   padding:2rem;
   text-align:center;
@@ -215,9 +259,17 @@ body{
   </div>
 </div>
 
+<!-- Round Navigation -->
+<div class="round-nav" id="round-nav" style="display:none">
+  <button id="btn-prev" onclick="changeRound(-1)">&#8592;</button>
+  <span class="round-label" id="round-label">—</span>
+  <span class="round-status" id="round-status-badge"></span>
+  <button id="btn-next" onclick="changeRound(1)">&#8594;</button>
+</div>
+
 <div class="lb-tabs">
   <button class="lb-tab active" onclick="switchTab(1,this)">Standings</button>
-  <button class="lb-tab" onclick="switchTab(2,this)">Current Courts</button>
+  <button class="lb-tab" onclick="switchTab(2,this)">Courts</button>
   <button class="lb-tab" onclick="switchTab(3,this)">Results</button>
 </div>
 
@@ -230,6 +282,7 @@ body{
         <th>Players</th>
         <th>W</th><th>L</th>
         <th>Court</th>
+        <th>Move</th>
         <th>Score</th>
       </tr></thead>
       <tbody id="tbody-standings"></tbody>
@@ -243,7 +296,6 @@ body{
   <div class="lb-page" id="p3">
     <table class="lb-table">
       <thead><tr>
-        <th>Round</th>
         <th>Court</th>
         <th>Winner</th>
         <th>Loser</th>
@@ -255,15 +307,16 @@ body{
 </div>
 
 <script>
-function switchTab(n, el) {
-  document.querySelectorAll('.lb-tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('p1').classList.toggle('active', n===1);
-  document.getElementById('p2').classList.toggle('active', n===2);
-  document.getElementById('p3').classList.toggle('active', n===3);
-}
+// ── State ──────────────────────────────────────────────────────────────────
+const CTC_KEY = 'ctc_live';
+let S = null;           // full tournament state
+let selectedRoundIdx = 0; // index into matchRounds array
+let matchRounds = [];     // only 'match' type rounds (seeding excluded from round nav)
+let allRounds = [];       // all rounds
+let activeTab = 1;
 
-function escHtml(str) {
+// ── Utilities ──────────────────────────────────────────────────────────────
+function esc(str) {
   if (!str) return '';
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -273,35 +326,95 @@ function setStatus(ok, msg) {
   document.getElementById('status-text').textContent = msg;
 }
 
-async function loadAndRender() {
-  try {
-    const resp = await fetch('ctc_data.json?' + Date.now());
-    if (!resp.ok) throw new Error('File not found (HTTP ' + resp.status + ')');
-    const data = await resp.json();
-    const s = data.state;
-    if (!s || !s.launched) { setStatus(false, 'No active tournament'); return; }
-
-    renderStandings(s);
-    renderCourts(s);
-    renderResults(s);
-    setStatus(true, 'Live · ' + new Date().toLocaleTimeString());
-  } catch(e) {
-    setStatus(false, 'Waiting for data — export ctc_data.json from the main app');
-  }
+// ── Tab switching ──────────────────────────────────────────────────────────
+function switchTab(n, el) {
+  document.querySelectorAll('.lb-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('p1').classList.toggle('active', n===1);
+  document.getElementById('p2').classList.toggle('active', n===2);
+  document.getElementById('p3').classList.toggle('active', n===3);
+  activeTab = n;
 }
 
-function computeStandings(s) {
-  const courts = s.numPlayers / 4;
-  const stats = s.teams.map((t, i) => ({tid: i, wins: 0, losses: 0, totalScore: 0, finalCourt: courts}));
+// ── Round navigation ───────────────────────────────────────────────────────
+function changeRound(delta) {
+  selectedRoundIdx = Math.max(0, Math.min(matchRounds.length - 1, selectedRoundIdx + delta));
+  renderAll();
+}
 
-  s.rounds.forEach(r => {
-    if (r.type !== 'match' || !r.completed) return;
+function updateRoundNav() {
+  if (!S || matchRounds.length === 0) {
+    document.getElementById('round-nav').style.display = 'none';
+    return;
+  }
+  document.getElementById('round-nav').style.display = 'flex';
+
+  const r = matchRounds[selectedRoundIdx];
+  document.getElementById('round-label').textContent =
+    (r.label || ('Round ' + (selectedRoundIdx + 1))) + '  (' + (selectedRoundIdx + 1) + ' of ' + matchRounds.length + ')';
+
+  const badge = document.getElementById('round-status-badge');
+  if (r.completed) {
+    badge.textContent = '✓ Completed';
+    badge.className = 'round-status completed';
+  } else {
+    // check if any score entered
+    const hasScores = r.fixtures && r.fixtures.some(f =>
+      f.scores && (f.scores.p1a !== '' || f.scores.p2a !== '')
+    );
+    badge.textContent = hasScores ? '⏳ In Progress' : 'Upcoming';
+    badge.className = 'round-status ' + (hasScores ? 'inprogress' : 'upcoming');
+  }
+
+  document.getElementById('btn-prev').disabled = (selectedRoundIdx === 0);
+  document.getElementById('btn-next').disabled = (selectedRoundIdx === matchRounds.length - 1);
+}
+
+// ── Team court in a given match round ─────────────────────────────────────
+function teamCourtInRound(teamId, round) {
+  if (!round || !round.fixtures) return null;
+  for (const f of round.fixtures) {
+    if (f.team1id === teamId || f.team2id === teamId) return f.courtNum;
+  }
+  return null;
+}
+
+// ── Movement arrow ─────────────────────────────────────────────────────────
+function movementArrow(curCourt, prevCourt) {
+  if (prevCourt === null) return '<span class="move-tbd">❓</span>';
+  if (curCourt < prevCourt) return '<span class="move-up">🔼</span>';
+  if (curCourt > prevCourt) return '<span class="move-down">🔽</span>';
+  return '<span class="move-stay">⏸️</span>';
+}
+
+// ── Standings ──────────────────────────────────────────────────────────────
+function computeStandingsUpTo(roundIdx) {
+  const numCourts = S.numPlayers / 4;
+  const stats = S.teams.map((t, i) => ({
+    tid: i,
+    wins: 0,
+    losses: 0,
+    totalScore: 0,
+    court: numCourts // default = bottom court
+  }));
+
+  matchRounds.forEach((r, idx) => {
+    if (idx > roundIdx) return;  // only up to selected round
+    if (!r.completed) return;
     r.fixtures.forEach(f => {
       if (!f.result) return;
       const wi = stats.findIndex(x => x.tid === f.result.winner);
       const li = stats.findIndex(x => x.tid === f.result.loser);
-      if (wi >= 0) { stats[wi].wins++; stats[wi].finalCourt = Math.max(1, f.courtNum - 1); }
-      if (li >= 0) { stats[li].losses++; stats[li].finalCourt = Math.min(courts, f.courtNum + 1); }
+
+      if (wi >= 0) {
+        stats[wi].wins++;
+        stats[wi].court = f.courtNum; // winner stays on their court
+      }
+      if (li >= 0) {
+        stats[li].losses++;
+        stats[li].court = f.courtNum; // loser was on this court
+      }
+
       const addScore = (tid, a, b) => {
         const st = stats.find(x => x.tid === tid);
         if (st) st.totalScore += (parseInt(a)||0) + (parseInt(b)||0);
@@ -311,106 +424,201 @@ function computeStandings(s) {
     });
   });
 
-  stats.sort((a, b) => a.finalCourt - b.finalCourt || b.wins - a.wins || b.totalScore - a.totalScore);
+  stats.sort((a, b) => a.court - b.court || b.wins - a.wins || b.totalScore - a.totalScore);
   return stats;
 }
 
-function renderStandings(s) {
-  const standings = computeStandings(s);
+function renderStandings() {
+  const roundIdx = selectedRoundIdx;
+  const stats = computeStandingsUpTo(roundIdx);
+  const prevStats = roundIdx > 0 ? computeStandingsUpTo(roundIdx - 1) : null;
+
+  // Get the current round for court display
+  const curRound = matchRounds[roundIdx];
+
   let html = '';
-  standings.forEach((st, i) => {
+  stats.forEach((st, i) => {
     const rank = i + 1;
     const cls = rank <= 3 ? 'rank-' + rank : 'rank-n';
-    const t = s.teams[st.tid];
-    const p1 = s.players[t.p1id], p2 = s.players[t.p2id];
+    const t = S.teams[st.tid];
+    const p1 = S.players[t.p1id];
+    const p2 = S.players[t.p2id];
+
+    // Court: show actual court from the selected round's fixtures
+    const curCourt = teamCourtInRound(st.tid, curRound) || st.court;
+
+    // Movement: compare to previous round
+    let move = '<span class="move-tbd">❓</span>';
+    if (prevStats) {
+      const prevRound = roundIdx > 0 ? matchRounds[roundIdx - 1] : null;
+      const prevCourt = teamCourtInRound(st.tid, prevRound);
+      if (prevCourt !== null) {
+        move = movementArrow(curCourt, prevCourt);
+      }
+    } else {
+      move = ''; // first round — no previous
+    }
+
     html += `<tr>
       <td><span class="rank-badge ${cls}">${rank}</span></td>
-      <td><strong>${escHtml(t.name)}</strong></td>
-      <td style="font-size:0.78rem;color:var(--muted)">${escHtml(p1.name)} &amp; ${escHtml(p2.name)}</td>
+      <td><strong>${esc(t.name)}</strong></td>
+      <td style="font-size:0.78rem;color:var(--muted)">${esc(p1.name)} &amp; ${esc(p2.name)}</td>
       <td><span style="color:var(--win);font-weight:700">${st.wins}</span></td>
       <td><span style="color:var(--lose)">${st.losses}</span></td>
-      <td><span class="badge-court">C${st.finalCourt}</span></td>
+      <td><span class="badge-court">C${curCourt}</span></td>
+      <td>${move}</td>
       <td style="font-family:'Bebas Neue',cursive;font-size:1.1rem;color:var(--accent)">${st.totalScore}</td>
     </tr>`;
   });
-  document.getElementById('tbody-standings').innerHTML = html || '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:1.5rem">No completed rounds yet</td></tr>';
+
+  document.getElementById('tbody-standings').innerHTML = html ||
+    '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:1.5rem">No completed rounds yet</td></tr>';
 }
 
-function renderCourts(s) {
-  // Show current round's fixtures
-  const lastRound = [...s.rounds].reverse().find(r => !r.completed && r.type === 'match')
-    || [...s.rounds].reverse().find(r => r.type === 'match')
-    || s.rounds[0];
-
-  if (!lastRound || !lastRound.fixtures) {
-    document.getElementById('courts-view').innerHTML = '<div class="no-data">No court data yet.</div>';
+// ── Courts ─────────────────────────────────────────────────────────────────
+function renderCourts() {
+  const round = matchRounds[selectedRoundIdx];
+  if (!round || !round.fixtures) {
+    document.getElementById('courts-view').innerHTML = '<div class="no-data">No court data for this round.</div>';
     return;
   }
 
   let html = '';
-  lastRound.fixtures.forEach(f => {
-    const t1 = s.teams[f.team1id], t2 = s.teams[f.team2id];
-    const p1a = s.players[t1.p1id], p1b = s.players[t1.p2id];
-    const p2a = s.players[t2.p1id], p2b = s.players[t2.p2id];
-    const t1tot = (parseInt(f.scores.p1a)||0)+(parseInt(f.scores.p1b)||0);
-    const t2tot = (parseInt(f.scores.p2a)||0)+(parseInt(f.scores.p2b)||0);
-    const label = lastRound.type === 'seeding' ? `Seeding Match ${f.id+1}` : `Court ${f.courtNum}`;
-    const isTop = f.courtNum === 1 && lastRound.type === 'match';
+  round.fixtures.forEach(f => {
+    const t1 = S.teams[f.team1id], t2 = S.teams[f.team2id];
+    const p1a = S.players[t1.p1id], p1b = S.players[t1.p2id];
+    const p2a = S.players[t2.p1id], p2b = S.players[t2.p2id];
+    const t1tot = (parseInt(f.scores.p1a)||0) + (parseInt(f.scores.p1b)||0);
+    const t2tot = (parseInt(f.scores.p2a)||0) + (parseInt(f.scores.p2b)||0);
+    const label = `Court ${f.courtNum}`;
+    const isTop = f.courtNum === 1;
 
     html += `<div class="court-card">
-      <div class="court-card-hdr ${isTop?'gold':''}">
+      <div class="court-card-hdr ${isTop ? 'gold' : ''}">
         <span class="court-name">${label}</span>
-        ${isTop?'<span style="font-size:0.65rem;color:rgba(255,255,255,0.8)">🏆 TOP</span>':''}
+        ${isTop ? '<span style="font-size:0.65rem;color:rgba(255,255,255,0.8)">🏆 TOP</span>' : ''}
       </div>
       <div class="court-body">
         <div class="team-row">
           <div style="flex:1">
-            <div class="team-name">${escHtml(t1.name)}</div>
-            <div class="team-players">${escHtml(p1a.name)} &amp; ${escHtml(p1b.name)}</div>
+            <div class="team-name">${esc(t1.name)}</div>
+            <div class="team-players">${esc(p1a.name)} &amp; ${esc(p1b.name)}</div>
           </div>
-          <div class="team-total">${f.scores.p1a!==''||f.scores.p1b!==''?t1tot:'—'}</div>
+          <div class="team-total">${f.scores.p1a !== '' || f.scores.p1b !== '' ? t1tot : '—'}</div>
         </div>
         <div class="team-row">
           <div style="flex:1">
-            <div class="team-name">${escHtml(t2.name)}</div>
-            <div class="team-players">${escHtml(p2a.name)} &amp; ${escHtml(p2b.name)}</div>
+            <div class="team-name">${esc(t2.name)}</div>
+            <div class="team-players">${esc(p2a.name)} &amp; ${esc(p2b.name)}</div>
           </div>
-          <div class="team-total">${f.scores.p2a!==''||f.scores.p2b!==''?t2tot:'—'}</div>
+          <div class="team-total">${f.scores.p2a !== '' || f.scores.p2b !== '' ? t2tot : '—'}</div>
         </div>
-        ${f.result ? `<div style="text-align:center;margin-top:0.5rem;font-family:'Bebas Neue',cursive;font-size:0.9rem;color:var(--win)">✓ ${escHtml(s.teams[f.result.winner].name)} Win</div>` : ''}
+        ${f.result ? `<div style="text-align:center;margin-top:0.5rem;font-family:'Bebas Neue',cursive;font-size:0.9rem;color:var(--win)">✓ ${esc(S.teams[f.result.winner].name)} Win</div>` : ''}
       </div>
     </div>`;
   });
+
   document.getElementById('courts-view').innerHTML = html;
 }
 
-function renderResults(s) {
+// ── Results ────────────────────────────────────────────────────────────────
+function renderResults() {
+  const round = matchRounds[selectedRoundIdx];
+  if (!round || !round.completed) {
+    document.getElementById('tbody-results').innerHTML =
+      '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:1.5rem">No results for this round yet</td></tr>';
+    return;
+  }
+
   let html = '';
-  s.rounds.forEach(r => {
-    if (!r.completed) return;
-    r.fixtures.forEach(f => {
-      if (!f.result) return;
-      const winner = s.teams[f.result.winner];
-      const loser = s.teams[f.result.loser];
-      const t1tot = (parseInt(f.scores.p1a)||0)+(parseInt(f.scores.p1b)||0);
-      const t2tot = (parseInt(f.scores.p2a)||0)+(parseInt(f.scores.p2b)||0);
-      const wTot = f.result.winner === f.team1id ? t1tot : t2tot;
-      const lTot = f.result.loser === f.team1id ? t1tot : t2tot;
-      const court = r.type === 'seeding' ? 'Seeding' : `C${f.courtNum}`;
-      html += `<tr>
-        <td style="font-size:0.8rem;color:var(--muted)">${escHtml(r.label)}</td>
-        <td><span class="badge-court">${court}</span></td>
-        <td style="color:var(--win);font-weight:600">${escHtml(winner.name)}</td>
-        <td style="color:var(--muted)">${escHtml(loser.name)}</td>
-        <td style="font-family:'Bebas Neue',cursive;color:var(--accent)">${wTot} – ${lTot}</td>
-      </tr>`;
-    });
+  round.fixtures.forEach(f => {
+    if (!f.result) return;
+    const winner = S.teams[f.result.winner];
+    const loser  = S.teams[f.result.loser];
+    const t1tot = (parseInt(f.scores.p1a)||0) + (parseInt(f.scores.p1b)||0);
+    const t2tot = (parseInt(f.scores.p2a)||0) + (parseInt(f.scores.p2b)||0);
+    const wTot = f.result.winner === f.team1id ? t1tot : t2tot;
+    const lTot = f.result.loser  === f.team1id ? t1tot : t2tot;
+    html += `<tr>
+      <td><span class="badge-court">C${f.courtNum}</span></td>
+      <td style="color:var(--win);font-weight:600">${esc(winner.name)}</td>
+      <td style="color:var(--muted)">${esc(loser.name)}</td>
+      <td style="font-family:'Bebas Neue',cursive;color:var(--accent)">${wTot} – ${lTot}</td>
+    </tr>`;
   });
-  document.getElementById('tbody-results').innerHTML = html || '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:1.5rem">No completed rounds yet</td></tr>';
+
+  document.getElementById('tbody-results').innerHTML = html ||
+    '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:1.5rem">No results yet</td></tr>';
 }
 
-loadAndRender();
-setInterval(loadAndRender, 3000);
+// ── Master render ──────────────────────────────────────────────────────────
+function renderAll() {
+  if (!S || !S.launched) return;
+  updateRoundNav();
+  renderStandings();
+  renderCourts();
+  renderResults();
+}
+
+// ── Data loading ───────────────────────────────────────────────────────────
+function applyState(state) {
+  if (!state || !state.launched) {
+    setStatus(false, 'No active tournament');
+    return;
+  }
+  S = state;
+
+  // Build match rounds list (exclude seeding)
+  allRounds = S.rounds || [];
+  matchRounds = allRounds.filter(r => r.type === 'match');
+
+  // Auto-select most recent started round
+  let autoIdx = 0;
+  matchRounds.forEach((r, i) => {
+    const hasData = r.completed || (r.fixtures && r.fixtures.some(f =>
+      f.scores && (f.scores.p1a !== '' || f.scores.p2a !== '')
+    ));
+    if (hasData) autoIdx = i;
+  });
+
+  // Only auto-advance if we haven't manually selected
+  if (!window._roundPinned) selectedRoundIdx = autoIdx;
+
+  renderAll();
+  setStatus(true, 'Live · ' + new Date().toLocaleTimeString());
+}
+
+// Broadcast Channel listener
+const _bc = new BroadcastChannel('ctc_live');
+_bc.onmessage = e => {
+  if (e.data && e.data.type === 'state_update') applyState(e.data.state);
+};
+
+// Initial load from localStorage
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem('ctc_live');
+    if (raw) applyState(JSON.parse(raw));
+    else setStatus(false, 'Waiting for tournament data — open index.html first');
+  } catch(e) {
+    setStatus(false, 'Error reading data');
+  }
+}
+
+// Override changeRound to pin selection
+const _origChange = changeRound;
+window.changeRound = function(delta) {
+  window._roundPinned = true;
+  selectedRoundIdx = Math.max(0, Math.min(matchRounds.length - 1, selectedRoundIdx + delta));
+  renderAll();
+};
+
+loadFromStorage();
+// Fallback poll every 3 seconds
+setInterval(() => {
+  const raw = localStorage.getItem('ctc_live');
+  if (raw) { try { applyState(JSON.parse(raw)); } catch(e){} }
+}, 3000);
 </script>
 </body>
 </html>
