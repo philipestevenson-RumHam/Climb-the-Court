@@ -157,7 +157,7 @@ body{
 /* ── CONTENT ── */
 .lb-body{flex:1;overflow-y:auto;padding:0;}
 .lb-page{display:none;}
-.lb-page.active{display:block;}
+.lb-page.active{display:block;width:100%;}
 
 /* ── TABLE ── */
 .lb-table{width:100%;border-collapse:collapse;}
@@ -208,9 +208,11 @@ body{
 /* ── COURTS VIEW ── */
 .courts-grid{
   display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+  grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
   gap:0.85rem;
   padding:1rem 1.5rem;
+  width:100%;
+  box-sizing:border-box;
 }
 .court-card{
   background:var(--card);
@@ -283,6 +285,7 @@ body{
         <th>W</th><th>L</th>
         <th>Court</th>
         <th>Move</th>
+        <th>Next</th>
         <th>Score</th>
       </tr></thead>
       <tbody id="tbody-standings"></tbody>
@@ -350,8 +353,12 @@ function updateRoundNav() {
   document.getElementById('round-nav').style.display = 'flex';
 
   const r = matchRounds[selectedRoundIdx];
-  document.getElementById('round-label').textContent =
-    (r.label || ('Round ' + (selectedRoundIdx + 1))) + '  (' + (selectedRoundIdx + 1) + ' of ' + matchRounds.length + ')';
+  const seedCount = matchRounds.filter(x => x.type === 'seeding').length;
+  const matchIdx = r.type === 'seeding' ? null : (selectedRoundIdx - seedCount + 1);
+  const roundLabel = r.type === 'seeding' ? 'Seeding Round'
+    : (r.label || ('Round ' + matchIdx));
+  const navLabel = roundLabel + '  (' + (selectedRoundIdx + 1) + ' of ' + matchRounds.length + ')';
+  document.getElementById('round-label').textContent = navLabel;
 
   const badge = document.getElementById('round-status-badge');
   if (r.completed) {
@@ -372,9 +379,16 @@ function updateRoundNav() {
 
 // ── Team court in a given match round ─────────────────────────────────────
 function teamCourtInRound(teamId, round) {
-  if (!round || !round.fixtures) return null;
+  if (!round) return null;
+  // Seeding round stores court data in courtAssignments, not fixtures
+  if (round.type === 'seeding' && round.courtAssignments) {
+    for (const ca of round.courtAssignments) {
+      if (ca.team1id === teamId || ca.team2id === teamId) return ca.courtNum;
+    }
+  }
+  if (!round.fixtures) return null;
   for (const f of round.fixtures) {
-    if (f.team1id === teamId || f.team2id === teamId) return f.courtNum;
+    if (f.team1id === teamId || f.team2id === teamId) return f.courtNum ?? null;
   }
   return null;
 }
@@ -401,6 +415,7 @@ function computeStandingsUpTo(roundIdx) {
   matchRounds.forEach((r, idx) => {
     if (idx > roundIdx) return;  // only up to selected round
     if (!r.completed) return;
+    if (r.type === 'seeding') return; // seeding doesn't count wins/losses
     r.fixtures.forEach(f => {
       if (!f.result) return;
       const wi = stats.findIndex(x => x.tid === f.result.winner);
@@ -430,11 +445,16 @@ function computeStandingsUpTo(roundIdx) {
 
 function renderStandings() {
   const roundIdx = selectedRoundIdx;
+  const curRound = matchRounds[roundIdx];
+
+  // If seeding round selected, show seeding-specific table
+  if (curRound && curRound.type === 'seeding') {
+    renderSeedingStandings(curRound);
+    return;
+  }
+
   const stats = computeStandingsUpTo(roundIdx);
   const prevStats = roundIdx > 0 ? computeStandingsUpTo(roundIdx - 1) : null;
-
-  // Get the current round for court display
-  const curRound = matchRounds[roundIdx];
 
   let html = '';
   stats.forEach((st, i) => {
@@ -447,32 +467,132 @@ function renderStandings() {
     // Court: show actual court from the selected round's fixtures
     const curCourt = teamCourtInRound(st.tid, curRound) || st.court;
 
-    // Movement: compare to previous round
-    let move = '<span class="move-tbd">❓</span>';
-    if (prevStats) {
-      const prevRound = roundIdx > 0 ? matchRounds[roundIdx - 1] : null;
-      const prevCourt = teamCourtInRound(st.tid, prevRound);
-      if (prevCourt !== null) {
-        move = movementArrow(curCourt, prevCourt);
+    // Individual scores for this round's fixture
+    let p1score = null, p2score = null;
+    if (curRound && curRound.fixtures) {
+      const fix = curRound.fixtures.find(f => f.team1id === st.tid || f.team2id === st.tid);
+      if (fix) {
+        const isT1 = fix.team1id === st.tid;
+        const sa = isT1 ? fix.scores.p1a : fix.scores.p2a;
+        const sb = isT1 ? fix.scores.p1b : fix.scores.p2b;
+        if (sa !== '' || sb !== '') { p1score = parseInt(sa)||0; p2score = parseInt(sb)||0; }
       }
-    } else {
-      move = ''; // first round — no previous
+    }
+    const p1cell = esc(p1.name) + (p1score !== null ? ` <span style="color:var(--gold);font-weight:700">(${p1score})</span>` : '');
+    const p2cell = esc(p2.name) + (p2score !== null ? ` <span style="color:var(--gold);font-weight:700">(${p2score})</span>` : '');
+
+    // Movement: same logic as index.html Movement tab
+    let move = '<span class="move-tbd">❓</span>';
+    let nextCourtCell = '<span style="color:var(--muted)">—</span>';
+    if (curRound && curRound.type === 'match') {
+      const numCourts = S.numPlayers / 4;
+      const fix = curRound.fixtures
+        ? curRound.fixtures.find(f => f.team1id === st.tid || f.team2id === st.tid)
+        : null;
+      if (fix && fix.result) {
+        const isWinner = fix.result.winner === st.tid;
+        const fc = fix.courtNum;
+        if (isWinner) {
+          const next = Math.max(1, fc - 1);
+          move = next < fc
+            ? '<span class="move-up">🔼</span>'
+            : '<span class="move-stay">⏸️</span>';
+          nextCourtCell = `<span class="badge-court">C${next}</span>`;
+        } else {
+          const next = Math.min(numCourts, fc + 1);
+          move = next > fc
+            ? '<span class="move-down">🔽</span>'
+            : '<span class="move-stay">⏸️</span>';
+          nextCourtCell = `<span class="badge-court">C${next}</span>`;
+        }
+      }
     }
 
     html += `<tr>
       <td><span class="rank-badge ${cls}">${rank}</span></td>
       <td><strong>${esc(t.name)}</strong></td>
-      <td style="font-size:0.78rem;color:var(--muted)">${esc(p1.name)} &amp; ${esc(p2.name)}</td>
+      <td style="font-size:1rem;color:#fff;font-weight:700">${p1cell} <span style="color:var(--muted)">&amp;</span> ${p2cell}</td>
       <td><span style="color:var(--win);font-weight:700">${st.wins}</span></td>
       <td><span style="color:var(--lose)">${st.losses}</span></td>
       <td><span class="badge-court">C${curCourt}</span></td>
       <td>${move}</td>
+      <td>${nextCourtCell}</td>
       <td style="font-family:'Bebas Neue',cursive;font-size:1.1rem;color:var(--accent)">${st.totalScore}</td>
     </tr>`;
   });
 
   document.getElementById('tbody-standings').innerHTML = html ||
-    '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:1.5rem">No completed rounds yet</td></tr>';
+    '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:1.5rem">No completed rounds yet</td></tr>';
+}
+
+// ── Seeding Standings ─────────────────────────────────────────────────────
+function renderSeedingStandings(seedRound) {
+  // Collect all teams with their seeding scores
+  const rows = [];
+  if (seedRound && seedRound.fixtures) {
+    seedRound.fixtures.forEach(f => {
+      const addTeam = (tid, sa, sb) => {
+        const score = (parseInt(sa)||0) + (parseInt(sb)||0);
+        rows.push({ tid, sa, sb, score });
+      };
+      addTeam(f.team1id, f.scores.p1a, f.scores.p1b);
+      addTeam(f.team2id, f.scores.p2a, f.scores.p2b);
+    });
+  }
+  rows.sort((a, b) => b.score - a.score);
+
+  if (!seedRound.completed) {
+    // Show in-progress seeding scores
+    let html = '';
+    rows.forEach((row, i) => {
+      const t = S.teams[row.tid];
+      const p1 = S.players[t.p1id], p2 = S.players[t.p2id];
+      const cls = i < 3 ? 'rank-' + (i+1) : 'rank-n';
+      const hasScores = row.sa !== '' || row.sb !== '';
+      const p1Score = hasScores ? ` <span style="color:var(--gold);font-weight:700">(${parseInt(row.sa)||0})</span>` : '';
+      const p2Score = hasScores ? ` <span style="color:var(--gold);font-weight:700">(${parseInt(row.sb)||0})</span>` : '';
+      html += `<tr>
+        <td><span class="rank-badge ${cls}">${i+1}</span></td>
+        <td><strong>${esc(t.name)}</strong></td>
+        <td style="font-size:1rem;color:#fff;font-weight:700">${esc(p1.name)}${p1Score} <span style="color:var(--muted)">&amp;</span> ${esc(p2.name)}${p2Score}</td>
+        <td colspan="4" style="color:var(--muted);font-style:italic">Seeding in progress</td>
+        <td style="font-family:'Bebas Neue',cursive;font-size:1.1rem;color:var(--accent)">${row.score}</td>
+      </tr>`;
+    });
+    document.getElementById('tbody-standings').innerHTML = html ||
+      '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:1.5rem">No seeding data yet</td></tr>';
+  } else {
+    // Court assignments from seeding
+    let courtMap = {};
+    if (seedRound.courtAssignments) {
+      seedRound.courtAssignments.forEach(ca => {
+        courtMap[ca.team1id] = ca.courtNum;
+        courtMap[ca.team2id] = ca.courtNum;
+      });
+    }
+    let html = '';
+    rows.forEach((row, i) => {
+      const t = S.teams[row.tid];
+      const p1 = S.players[t.p1id], p2 = S.players[t.p2id];
+      const cls = i < 3 ? 'rank-' + (i+1) : 'rank-n';
+      const court = courtMap[row.tid] || '—';
+      const hasScores = row.sa !== '' || row.sb !== '';
+      const p1Score = hasScores ? ` <span style="color:var(--gold);font-weight:700">(${parseInt(row.sa)||0})</span>` : '';
+      const p2Score = hasScores ? ` <span style="color:var(--gold);font-weight:700">(${parseInt(row.sb)||0})</span>` : '';
+      html += `<tr>
+        <td><span class="rank-badge ${cls}">${i+1}</span></td>
+        <td><strong>${esc(t.name)}</strong></td>
+        <td style="font-size:1rem;color:#fff;font-weight:700">${esc(p1.name)}${p1Score} <span style="color:var(--muted)">&amp;</span> ${esc(p2.name)}${p2Score}</td>
+        <td>—</td><td>—</td>
+        <td><span class="badge-court">C${court}</span></td>
+        <td>—</td>
+        <td>—</td>
+        <td style="font-family:'Bebas Neue',cursive;font-size:1.1rem;color:var(--accent)">${row.score}</td>
+      </tr>`;
+    });
+    document.getElementById('tbody-standings').innerHTML = html ||
+      '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:1.5rem">No seeding data yet</td></tr>';
+  }
 }
 
 // ── Courts ─────────────────────────────────────────────────────────────────
@@ -480,6 +600,11 @@ function renderCourts() {
   const round = matchRounds[selectedRoundIdx];
   if (!round || !round.fixtures) {
     document.getElementById('courts-view').innerHTML = '<div class="no-data">No court data for this round.</div>';
+    return;
+  }
+  // Seeding round: show all teams with their scores (no head-to-head court layout)
+  if (round.type === 'seeding') {
+    renderSeedingCourts(round);
     return;
   }
 
@@ -490,6 +615,12 @@ function renderCourts() {
     const p2a = S.players[t2.p1id], p2b = S.players[t2.p2id];
     const t1tot = (parseInt(f.scores.p1a)||0) + (parseInt(f.scores.p1b)||0);
     const t2tot = (parseInt(f.scores.p2a)||0) + (parseInt(f.scores.p2b)||0);
+    const hasT1 = f.scores.p1a !== '' || f.scores.p1b !== '';
+    const hasT2 = f.scores.p2a !== '' || f.scores.p2b !== '';
+    const p1aScore = hasT1 ? ` <span style="color:var(--gold);font-weight:700">(${parseInt(f.scores.p1a)||0})</span>` : '';
+    const p1bScore = hasT1 ? ` <span style="color:var(--gold);font-weight:700">(${parseInt(f.scores.p1b)||0})</span>` : '';
+    const p2aScore = hasT2 ? ` <span style="color:var(--gold);font-weight:700">(${parseInt(f.scores.p2a)||0})</span>` : '';
+    const p2bScore = hasT2 ? ` <span style="color:var(--gold);font-weight:700">(${parseInt(f.scores.p2b)||0})</span>` : '';
     const label = `Court ${f.courtNum}`;
     const isTop = f.courtNum === 1;
 
@@ -502,16 +633,16 @@ function renderCourts() {
         <div class="team-row">
           <div style="flex:1">
             <div class="team-name">${esc(t1.name)}</div>
-            <div class="team-players">${esc(p1a.name)} &amp; ${esc(p1b.name)}</div>
+            <div class="team-players" style="color:#fff;font-weight:700;font-size:0.88rem">${esc(p1a.name)}${p1aScore} <span style="color:var(--muted)">&amp;</span> ${esc(p1b.name)}${p1bScore}</div>
           </div>
-          <div class="team-total">${f.scores.p1a !== '' || f.scores.p1b !== '' ? t1tot : '—'}</div>
+          <div class="team-total">${hasT1 ? t1tot : '—'}</div>
         </div>
         <div class="team-row">
           <div style="flex:1">
             <div class="team-name">${esc(t2.name)}</div>
-            <div class="team-players">${esc(p2a.name)} &amp; ${esc(p2b.name)}</div>
+            <div class="team-players" style="color:#fff;font-weight:700;font-size:0.88rem">${esc(p2a.name)}${p2aScore} <span style="color:var(--muted)">&amp;</span> ${esc(p2b.name)}${p2bScore}</div>
           </div>
-          <div class="team-total">${f.scores.p2a !== '' || f.scores.p2b !== '' ? t2tot : '—'}</div>
+          <div class="team-total">${hasT2 ? t2tot : '—'}</div>
         </div>
         ${f.result ? `<div style="text-align:center;margin-top:0.5rem;font-family:'Bebas Neue',cursive;font-size:0.9rem;color:var(--win)">✓ ${esc(S.teams[f.result.winner].name)} Win</div>` : ''}
       </div>
@@ -521,12 +652,83 @@ function renderCourts() {
   document.getElementById('courts-view').innerHTML = html;
 }
 
+// ── Seeding Courts View ────────────────────────────────────────────────────
+function renderSeedingCourts(seedRound) {
+  const el = document.getElementById('courts-view');
+  if (!seedRound || !seedRound.fixtures) {
+    el.innerHTML = '<div class="no-data">No seeding data available.</div>';
+    return;
+  }
+  // Collect all teams with scores
+  const rows = [];
+  seedRound.fixtures.forEach(f => {
+    [
+      { tid: f.team1id, sa: f.scores.p1a, sb: f.scores.p1b },
+      { tid: f.team2id, sa: f.scores.p2a, sb: f.scores.p2b }
+    ].forEach(({ tid, sa, sb }) => {
+      const t = S.teams[tid];
+      const p1 = S.players[t.p1id], p2 = S.players[t.p2id];
+      const score = sa !== '' || sb !== '' ? (parseInt(sa)||0) + (parseInt(sb)||0) : null;
+      const saScore = sa !== '' ? ` <span style="color:var(--gold);font-weight:700">(${parseInt(sa)||0})</span>` : '';
+      const sbScore = sb !== '' ? ` <span style="color:var(--gold);font-weight:700">(${parseInt(sb)||0})</span>` : '';
+      rows.push({ t, p1, p2, sa, sb, saScore, sbScore, score });
+    });
+  });
+  rows.sort((a, b) => (b.score||0) - (a.score||0));
+
+  let html = '<div class="courts-grid" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr))">';
+  rows.forEach((row, i) => {
+    html += `<div class="court-card">
+      <div class="court-card-hdr" style="background:var(--grass-light)">
+        <span class="court-name">Seed #${i+1}</span>
+      </div>
+      <div class="court-body">
+        <div class="team-row">
+          <div style="flex:1">
+            <div class="team-name">${esc(row.t.name)}</div>
+            <div class="team-players" style="color:#fff;font-weight:700;font-size:0.88rem">${esc(row.p1.name)}${row.saScore} <span style="color:var(--muted)">&amp;</span> ${esc(row.p2.name)}${row.sbScore}</div>
+          </div>
+          <div class="team-total">${row.score !== null ? row.score : '—'}</div>
+        </div>
+      </div>
+    </div>`;
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
 // ── Results ────────────────────────────────────────────────────────────────
 function renderResults() {
   const round = matchRounds[selectedRoundIdx];
   if (!round || !round.completed) {
     document.getElementById('tbody-results').innerHTML =
       '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:1.5rem">No results for this round yet</td></tr>';
+    return;
+  }
+  // Seeding round: show seeding scores sorted
+  if (round.type === 'seeding') {
+    const rows = [];
+    round.fixtures.forEach(f => {
+      [
+        { tid: f.team1id, sa: f.scores.p1a, sb: f.scores.p1b },
+        { tid: f.team2id, sa: f.scores.p2a, sb: f.scores.p2b }
+      ].forEach(({ tid, sa, sb }) => {
+        const score = (parseInt(sa)||0) + (parseInt(sb)||0);
+        rows.push({ t: S.teams[tid], score });
+      });
+    });
+    rows.sort((a, b) => b.score - a.score);
+    let html = '';
+    rows.forEach((row, i) => {
+      html += `<tr>
+        <td><span class="rank-badge ${i < 3 ? 'rank-'+(i+1) : 'rank-n'}">${i+1}</span></td>
+        <td style="color:var(--win);font-weight:600">${esc(row.t.name)}</td>
+        <td style="color:var(--muted)">Seeding score</td>
+        <td style="font-family:'Bebas Neue',cursive;color:var(--accent)">${row.score}</td>
+      </tr>`;
+    });
+    document.getElementById('tbody-results').innerHTML = html ||
+      '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:1.5rem">No seeding data</td></tr>';
     return;
   }
 
@@ -568,9 +770,11 @@ function applyState(state) {
   }
   S = state;
 
-  // Build match rounds list (exclude seeding)
+  // Build rounds list (include seeding as round 0 if present)
   allRounds = S.rounds || [];
-  matchRounds = allRounds.filter(r => r.type === 'match');
+  const seedingRounds = allRounds.filter(r => r.type === 'seeding');
+  const onlyMatchRounds = allRounds.filter(r => r.type === 'match');
+  matchRounds = [...seedingRounds, ...onlyMatchRounds];
 
   // Auto-select most recent started round
   let autoIdx = 0;
