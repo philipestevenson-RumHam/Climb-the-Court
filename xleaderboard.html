@@ -29,11 +29,8 @@ html,body{width:100%;height:100%;overflow:hidden}
 body{
   background:var(--dark);
   background-image:
-    radial-gradient(ellipse at top left,rgba(78,255,122,0.07) 0%,transparent 55%),
-    radial-gradient(ellipse at bottom right,rgba(45,158,71,0.10) 0%,transparent 55%),
-    repeating-linear-gradient(0deg,transparent,transparent 40px,rgba(78,255,122,0.015) 40px,rgba(78,255,122,0.015) 41px),
-    repeating-linear-gradient(90deg,transparent,transparent 80px,rgba(78,255,122,0.015) 80px,rgba(78,255,122,0.015) 81px);
-  background-attachment:fixed;
+    radial-gradient(ellipse at top left,rgba(78,255,122,0.08) 0%,transparent 55%),
+    radial-gradient(ellipse at bottom right,rgba(45,158,71,0.10) 0%,transparent 55%);
   color:var(--text);
   font-family:'Outfit',sans-serif;
   display:flex;
@@ -156,7 +153,6 @@ body{
 }
 .lb-tab:hover{color:var(--accent);}
 .lb-tab.active{color:var(--accent);border-bottom-color:var(--grass-bright);}
-.tab-spacer{display:inline-block;width:2.5rem;border-right:1px solid var(--border);margin:0 0.25rem;align-self:stretch;}
 
 /* ── CONTENT ── */
 .lb-body{flex:1;overflow:hidden;padding:0;display:flex;flex-direction:column;}
@@ -305,15 +301,9 @@ body{
 </div>
 
 <div class="lb-tabs">
-  <button class="lb-tab active" onclick="switchTab(1,this)">Climb the Court</button>
+  <button class="lb-tab active" onclick="switchTab(1,this)">Standings</button>
   <button class="lb-tab" onclick="switchTab(2,this)">Courts</button>
   <button class="lb-tab" onclick="switchTab(3,this)">Results</button>
-  <span class="tab-spacer"></span>
-  <button class="lb-tab" onclick="switchTab(4,this)">Round (Players)</button>
-  <button class="lb-tab" onclick="switchTab(5,this)">Round (Teams)</button>
-  <span class="tab-spacer"></span>
-  <button class="lb-tab" onclick="switchTab(6,this)">Overall (Players)</button>
-  <button class="lb-tab" onclick="switchTab(7,this)">Overall (Teams)</button>
 </div>
 
 <div class="lb-body">
@@ -350,22 +340,6 @@ body{
       <tbody id="tbody-results"></tbody>
     </table>
   </div>
-
-  <div class="lb-page" id="p4">
-    <!-- Players tab — rendered by JS -->
-  </div>
-
-  <div class="lb-page" id="p5">
-    <!-- Round Teams tab — rendered by JS -->
-  </div>
-
-  <div class="lb-page" id="p6">
-    <!-- Overall Players tab — rendered by JS -->
-  </div>
-
-  <div class="lb-page" id="p7">
-    <!-- Overall Teams tab — rendered by JS -->
-  </div>
 </div>
 
 <script>
@@ -392,12 +366,10 @@ function setStatus(ok, msg) {
 function switchTab(n, el) {
   document.querySelectorAll('.lb-tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
-  [1,2,3,4,5,6,7].forEach(i => document.getElementById('p'+i).classList.toggle('active', n===i));
+  document.getElementById('p1').classList.toggle('active', n===1);
+  document.getElementById('p2').classList.toggle('active', n===2);
+  document.getElementById('p3').classList.toggle('active', n===3);
   activeTab = n;
-  if (n === 4) renderPlayersTab();
-  if (n === 5) renderTeamsTab();
-  if (n === 6) renderOverallPlayersTab();
-  if (n === 7) renderOverallTeamsTab();
 }
 
 // ── Round navigation ───────────────────────────────────────────────────────
@@ -925,212 +897,6 @@ function renderResults() {
     '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:1.5rem">No results yet</td></tr>';
 }
 
-// ── Players Tab (for selected round) ──────────────────────────────────────
-function renderPlayersTab() {
-  if (!S || !S.launched) {
-    document.getElementById('p4').innerHTML = '<div class="no-data">No active tournament</div>';
-    return;
-  }
-  const round = matchRounds[selectedRoundIdx];
-  const stats = {};
-  (S.players || []).forEach(p => {
-    if (p && p.id !== undefined) stats[p.id] = { pid: p.id, wins: 0, losses: 0, totalScore: 0 };
-  });
-  const fixtures = round ? (round.fixtures || []) : [];
-  fixtures.forEach(fix => {
-    const sc = fix.scores || {};
-    const t1 = S.teams[fix.team1id];
-    const t2 = S.teams[fix.team2id];
-    if (!t1 || !t2) return;
-    if (sc.p1a !== '' && sc.p1a !== undefined && stats[t1.p1id] !== undefined)
-      stats[t1.p1id].totalScore += parseInt(sc.p1a) || 0;
-    if (sc.p1b !== '' && sc.p1b !== undefined && stats[t1.p2id] !== undefined)
-      stats[t1.p2id].totalScore += parseInt(sc.p1b) || 0;
-    if (sc.p2a !== '' && sc.p2a !== undefined && stats[t2.p1id] !== undefined)
-      stats[t2.p1id].totalScore += parseInt(sc.p2a) || 0;
-    if (sc.p2b !== '' && sc.p2b !== undefined && stats[t2.p2id] !== undefined)
-      stats[t2.p2id].totalScore += parseInt(sc.p2b) || 0;
-    if (fix.result) {
-      const winTeam = S.teams[fix.result.winner];
-      const loseTeam = S.teams[fix.result.loser];
-      if (winTeam) {
-        if (stats[winTeam.p1id] !== undefined) stats[winTeam.p1id].wins++;
-        if (stats[winTeam.p2id] !== undefined) stats[winTeam.p2id].wins++;
-      }
-      if (loseTeam) {
-        if (stats[loseTeam.p1id] !== undefined) stats[loseTeam.p1id].losses++;
-        if (stats[loseTeam.p2id] !== undefined) stats[loseTeam.p2id].losses++;
-      }
-    }
-  });
-  const rows = Object.values(stats).sort((a, b) => b.totalScore - a.totalScore || b.wins - a.wins || a.losses - b.losses);
-  let h = '<table class="lb-table"><thead><tr>';
-  h += '<th style="width:36px">#</th><th>Player</th><th>Team</th><th>W</th><th>L</th><th>Score</th>';
-  h += '</tr></thead><tbody>';
-  rows.forEach((ps, i) => {
-    const rank = i + 1;
-    const cls = rank <= 3 ? 'rank-' + rank : 'rank-n';
-    const p = S.players[ps.pid];
-    const team = S.teams.find(t => t.p1id === ps.pid || t.p2id === ps.pid);
-    h += `<tr>
-      <td><span class="rank-badge ${cls}">${rank}</span></td>
-      <td><strong>${esc(p ? p.name : '?')}</strong></td>
-      <td style="font-size:0.85rem;color:var(--muted)">${esc(team ? team.name : '?')}</td>
-      <td><span style="color:var(--win);font-weight:700">${ps.wins}</span></td>
-      <td><span style="color:var(--lose)">${ps.losses}</span></td>
-      <td style="font-family:'Bebas Neue',cursive;font-size:1.1rem;color:var(--accent)">${ps.totalScore}</td>
-    </tr>`;
-  });
-  h += '</tbody></table>';
-  document.getElementById('p4').innerHTML = h;
-}
-
-// ── Teams Tab (for selected round) ─────────────────────────────────────────
-function renderTeamsTab() {
-  if (!S || !S.launched) {
-    document.getElementById('p5').innerHTML = '<div class="no-data">No active tournament</div>';
-    return;
-  }
-  const round = matchRounds[selectedRoundIdx];
-  const stats = S.teams.map((t, i) => ({ tid: i, wins: 0, losses: 0, totalScore: 0 }));
-  const fixtures = round ? (round.fixtures || []) : [];
-  fixtures.forEach(fix => {
-    const sc = fix.scores || {};
-    const s1 = stats.find(s => s.tid === fix.team1id);
-    const s2 = stats.find(s => s.tid === fix.team2id);
-    if (s1) s1.totalScore += (parseInt(sc.p1a) || 0) + (parseInt(sc.p1b) || 0);
-    if (s2) s2.totalScore += (parseInt(sc.p2a) || 0) + (parseInt(sc.p2b) || 0);
-    if (fix.result) {
-      const sw = stats.find(s => s.tid === fix.result.winner);
-      const sl = stats.find(s => s.tid === fix.result.loser);
-      if (sw) sw.wins++;
-      if (sl) sl.losses++;
-    }
-  });
-  stats.sort((a, b) => b.totalScore - a.totalScore || b.wins - a.wins || a.losses - b.losses);
-  let h = '<table class="lb-table"><thead><tr>';
-  h += '<th style="width:36px">#</th><th>Team</th><th>Players</th><th>W</th><th>L</th><th>Score</th>';
-  h += '</tr></thead><tbody>';
-  stats.forEach((s, i) => {
-    const rank = i + 1, cls = rank <= 3 ? 'rank-' + rank : 'rank-n';
-    const t = S.teams[s.tid], p1 = S.players[t.p1id], p2 = S.players[t.p2id];
-    h += `<tr>
-      <td><span class="rank-badge ${cls}">${rank}</span></td>
-      <td><strong>${esc(t.name)}</strong></td>
-      <td style="font-size:0.8rem;color:var(--muted)">${esc(p1 ? p1.name : '?')} &amp; ${esc(p2 ? p2.name : '?')}</td>
-      <td><span style="color:var(--win);font-weight:700">${s.wins}</span></td>
-      <td><span style="color:var(--lose)">${s.losses}</span></td>
-      <td style="font-family:'Bebas Neue',cursive;font-size:1.1rem;color:var(--accent)">${s.totalScore}</td>
-    </tr>`;
-  });
-  h += '</tbody></table>';
-  document.getElementById('p5').innerHTML = h;
-}
-
-// ── Overall Players Tab (all played rounds) ────────────────────────────────
-function renderOverallPlayersTab() {
-  if (!S || !S.launched) {
-    document.getElementById('p6').innerHTML = '<div class="no-data">No active tournament</div>';
-    return;
-  }
-  const stats = {};
-  (S.players || []).forEach((p, i) => {
-    if (p && p.id !== undefined) stats[p.id] = { pid: p.id, wins: 0, losses: 0, totalScore: 0 };
-  });
-  (matchRounds || []).forEach(round => {
-    if (!round) return;
-    (round.fixtures || []).forEach(fix => {
-      const sc = fix.scores || {};
-      const t1 = S.teams[fix.team1id];
-      const t2 = S.teams[fix.team2id];
-      if (!t1 || !t2) return;
-      if (sc.p1a !== '' && sc.p1a !== undefined && stats[t1.p1id] !== undefined)
-        stats[t1.p1id].totalScore += parseInt(sc.p1a) || 0;
-      if (sc.p1b !== '' && sc.p1b !== undefined && stats[t1.p2id] !== undefined)
-        stats[t1.p2id].totalScore += parseInt(sc.p1b) || 0;
-      if (sc.p2a !== '' && sc.p2a !== undefined && stats[t2.p1id] !== undefined)
-        stats[t2.p1id].totalScore += parseInt(sc.p2a) || 0;
-      if (sc.p2b !== '' && sc.p2b !== undefined && stats[t2.p2id] !== undefined)
-        stats[t2.p2id].totalScore += parseInt(sc.p2b) || 0;
-      if (fix.result) {
-        const winTeam = S.teams[fix.result.winner];
-        const loseTeam = S.teams[fix.result.loser];
-        if (winTeam) {
-          if (stats[winTeam.p1id] !== undefined) stats[winTeam.p1id].wins++;
-          if (stats[winTeam.p2id] !== undefined) stats[winTeam.p2id].wins++;
-        }
-        if (loseTeam) {
-          if (stats[loseTeam.p1id] !== undefined) stats[loseTeam.p1id].losses++;
-          if (stats[loseTeam.p2id] !== undefined) stats[loseTeam.p2id].losses++;
-        }
-      }
-    });
-  });
-  const rows = Object.values(stats).sort((a, b) => b.totalScore - a.totalScore || b.wins - a.wins || a.losses - b.losses);
-  let h = '<table class="lb-table"><thead><tr>';
-  h += '<th style="width:36px">#</th><th>Player</th><th>Team</th><th>W</th><th>L</th><th>Score</th>';
-  h += '</tr></thead><tbody>';
-  rows.forEach((ps, i) => {
-    const rank = i + 1;
-    const cls = rank <= 3 ? 'rank-' + rank : 'rank-n';
-    const p = S.players[ps.pid];
-    const team = S.teams.find(t => t.p1id === ps.pid || t.p2id === ps.pid);
-    h += `<tr>
-      <td><span class="rank-badge ${cls}">${rank}</span></td>
-      <td><strong>${esc(p ? p.name : '?')}</strong></td>
-      <td style="font-size:0.85rem;color:var(--muted)">${esc(team ? team.name : '?')}</td>
-      <td><span style="color:var(--win);font-weight:700">${ps.wins}</span></td>
-      <td><span style="color:var(--lose)">${ps.losses}</span></td>
-      <td style="font-family:'Bebas Neue',cursive;font-size:1.1rem;color:var(--accent)">${ps.totalScore}</td>
-    </tr>`;
-  });
-  h += '</tbody></table>';
-  document.getElementById('p6').innerHTML = h;
-}
-
-// ── Overall Teams Tab (all played rounds) ──────────────────────────────────
-function renderOverallTeamsTab() {
-  if (!S || !S.launched) {
-    document.getElementById('p7').innerHTML = '<div class="no-data">No active tournament</div>';
-    return;
-  }
-  const stats = S.teams.map((t, i) => ({ tid: i, wins: 0, losses: 0, totalScore: 0 }));
-  (matchRounds || []).forEach(round => {
-    if (!round) return;
-    (round.fixtures || []).forEach(fix => {
-      const sc = fix.scores || {};
-      const s1 = stats.find(s => s.tid === fix.team1id);
-      const s2 = stats.find(s => s.tid === fix.team2id);
-      if (s1) s1.totalScore += (parseInt(sc.p1a) || 0) + (parseInt(sc.p1b) || 0);
-      if (s2) s2.totalScore += (parseInt(sc.p2a) || 0) + (parseInt(sc.p2b) || 0);
-      if (fix.result) {
-        const sw = stats.find(s => s.tid === fix.result.winner);
-        const sl = stats.find(s => s.tid === fix.result.loser);
-        if (sw) sw.wins++;
-        if (sl) sl.losses++;
-      }
-    });
-  });
-  stats.sort((a, b) => b.totalScore - a.totalScore || b.wins - a.wins || a.losses - b.losses);
-  let h = '<table class="lb-table"><thead><tr>';
-  h += '<th style="width:36px">#</th><th>Team</th><th>Players</th><th>W</th><th>L</th><th>Score</th>';
-  h += '</tr></thead><tbody>';
-  stats.forEach((s, i) => {
-    const rank = i + 1, cls = rank <= 3 ? 'rank-' + rank : 'rank-n';
-    const t = S.teams[s.tid], p1 = S.players[t.p1id], p2 = S.players[t.p2id];
-    h += `<tr>
-      <td><span class="rank-badge ${cls}">${rank}</span></td>
-      <td><strong>${esc(t.name)}</strong></td>
-      <td style="font-size:0.8rem;color:var(--muted)">${esc(p1 ? p1.name : '?')} &amp; ${esc(p2 ? p2.name : '?')}</td>
-      <td><span style="color:var(--win);font-weight:700">${s.wins}</span></td>
-      <td><span style="color:var(--lose)">${s.losses}</span></td>
-      <td style="font-family:'Bebas Neue',cursive;font-size:1.1rem;color:var(--accent)">${s.totalScore}</td>
-    </tr>`;
-  });
-  h += '</tbody></table>';
-  document.getElementById('p7').innerHTML = h;
-}
-
 // ── Master render ──────────────────────────────────────────────────────────
 function renderAll() {
   if (!S || !S.launched) return;
@@ -1138,10 +904,6 @@ function renderAll() {
   renderStandings();
   renderCourts();
   renderResults();
-  if (activeTab === 4) renderPlayersTab();
-  if (activeTab === 5) renderTeamsTab();
-  if (activeTab === 6) renderOverallPlayersTab();
-  if (activeTab === 7) renderOverallTeamsTab();
 }
 
 // ── Data loading ───────────────────────────────────────────────────────────
