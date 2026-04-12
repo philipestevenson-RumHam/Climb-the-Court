@@ -240,7 +240,6 @@ body::before {
   z-index: 0;
 }
 </style>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -257,7 +256,7 @@ body::before {
   <div class="header-actions">
     <button class="btn btn-ghost btn-sm" onclick="exportData()">⬇ Export</button>
     <button class="btn btn-ghost btn-sm" onclick="document.getElementById('imp1').click()">⬆ Import</button>
-    <input type="file" id="imp1" accept=".xlsx" style="display:none" onchange="importData(event)">
+    <input type="file" id="imp1" accept=".json" style="display:none" onchange="importData(event)">
   </div>
 </header>
 
@@ -1419,146 +1418,19 @@ function closeGraphic(){document.getElementById('graphic-view').classList.remove
 //  IMPORT / EXPORT
 // ═══════════════════════════════════════════════════════
 function exportData(){
-  if(!window.XLSX){alert2('Excel library not loaded yet, please try again.','warning');return;}
-  const wb=XLSX.utils.book_new();
-  // Settings sheet
-  const settings=[
-    ['Setting','Value'],
-    ['Tournament Name',S.name],
-    ['Number of Players',S.numPlayers],
-    ['Number of Rounds',S.numRounds],
-    ['Launched',S.launched?'Yes':'No'],
-    ['Current Round',S.currentRound]
-  ];
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(settings),'Settings');
-  // Players sheet
-  const playersData=[['ID','Name']];
-  (S.players||[]).forEach(p=>playersData.push([p.id,p.name]));
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(playersData),'Players');
-  // Teams sheet
-  const teamsData=[['ID','Team Name','Player 1','Player 2']];
-  (S.teams||[]).forEach(t=>{
-    const p1=(S.players||[]).find(p=>p.id===t.p1id);
-    const p2=(S.players||[]).find(p=>p.id===t.p2id);
-    teamsData.push([t.id,t.name,p1?p1.name:'',p2?p2.name:'']);
-  });
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(teamsData),'Teams');
-  // Courts sheet (seeding fixtures)
-  const seedingRound=(S.rounds||[]).find(r=>r.type==='seeding');
-  const courtsData=[['Court','Team 1','Team 2']];
-  if(seedingRound)(seedingRound.fixtures||[]).forEach(f=>{
-    const t1=(S.teams||[]).find(t=>t.id===f.team1id);
-    const t2=(S.teams||[]).find(t=>t.id===f.team2id);
-    courtsData.push([f.courtNum,t1?t1.name:'',t2?t2.name:'']);
-  });
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(courtsData),'Courts');
-  // Scores sheet
-  const scoresData=[['Round','Type','Court','Team 1','Team 2','Score 1A','Score 1B','Score 2A','Score 2B','Winner','Loser','Round Completed']];
-  (S.rounds||[]).forEach(r=>{
-    (r.fixtures||[]).forEach(f=>{
-      const t1=(S.teams||[]).find(t=>t.id===f.team1id);
-      const t2=(S.teams||[]).find(t=>t.id===f.team2id);
-      const winner=f.result?(S.teams||[]).find(t=>t.id===f.result.winner):null;
-      const loser=f.result?(S.teams||[]).find(t=>t.id===f.result.loser):null;
-      const sc=f.scores||{};
-      scoresData.push([
-        r.label||r.roundNum, r.type, f.courtNum,
-        t1?t1.name:'', t2?t2.name:'',
-        sc.p1a!=null?sc.p1a:0, sc.p1b!=null?sc.p1b:0,
-        sc.p2a!=null?sc.p2a:0, sc.p2b!=null?sc.p2b:0,
-        winner?winner.name:'', loser?loser.name:'',
-        r.completed?'Yes':'No'
-      ]);
-    });
-  });
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(scoresData),'Scores');
-  // Hidden _state sheet for reliable round-trip import
-  const stateSheet=XLSX.utils.aoa_to_sheet([['json'],[JSON.stringify(S)]]);
-  XLSX.utils.book_append_sheet(wb,stateSheet,'_state');
-  XLSX.writeFile(wb,'ctc_data.xlsx');
+  const blob=new Blob([JSON.stringify({version:1,exportedAt:new Date().toISOString(),game:'climb-the-court',state:S},null,2)],{type:'application/json'});
+  const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download='ctc_data.json';a.click();URL.revokeObjectURL(u);
 }
 function importData(evt){
   const file=evt.target.files[0];if(!file)return;
-  if(!window.XLSX){alert2('Excel library not loaded yet, please try again.','warning');evt.target.value='';return;}
   const reader=new FileReader();
   reader.onload=e=>{
-    try{
-      const wb=XLSX.read(e.target.result,{type:'binary'});
-      if(!wb.SheetNames.includes('_state'))throw new Error('Not a valid CTC export file');
-
-      // ── 1. Load base state ─────────────────────────────────────────
-      const stateRows=XLSX.utils.sheet_to_json(wb.Sheets['_state'],{header:1});
-      const json=stateRows[1]&&stateRows[1][0];
-      if(!json)throw new Error('State data is empty');
-      const newS=JSON.parse(json);
-
-      // ── 2. Overlay Players sheet ───────────────────────────────────
-      if(wb.SheetNames.includes('Players')){
-        XLSX.utils.sheet_to_json(wb.Sheets['Players'],{header:1}).slice(1).forEach(r=>{
-          const [id,name]=r;
-          if(id==null||id===''||!name)return;
-          const p=(newS.players||[]).find(p=>String(p.id)===String(id));
-          if(p)p.name=String(name).trim();
-        });
-      }
-
-      // ── 3. Overlay Teams sheet ─────────────────────────────────────
-      if(wb.SheetNames.includes('Teams')){
-        XLSX.utils.sheet_to_json(wb.Sheets['Teams'],{header:1}).slice(1).forEach(r=>{
-          const [id,teamName,p1name,p2name]=r;
-          if(id==null||id==='')return;
-          const t=(newS.teams||[]).find(t=>String(t.id)===String(id));
-          if(!t)return;
-          if(teamName!=null)t.name=String(teamName).trim();
-          // Re-link players by updated name if provided
-          if(p1name){const p=(newS.players||[]).find(p=>p.name===String(p1name).trim());if(p)t.p1id=p.id;}
-          if(p2name){const p=(newS.players||[]).find(p=>p.name===String(p2name).trim());if(p)t.p2id=p.id;}
-        });
-      }
-
-      // ── 4. Overlay Scores sheet ────────────────────────────────────
-      if(wb.SheetNames.includes('Scores')){
-        const scoreRows=XLSX.utils.sheet_to_json(wb.Sheets['Scores'],{header:1}).slice(1);
-        console.log('[Import] Scores rows to process:',scoreRows.length);
-        scoreRows.forEach((r,ri)=>{
-          // Columns: Round, Type, Court, Team1, Team2, S1A, S1B, S2A, S2B, Winner, Loser, Completed
-          const roundLabel=r[0], courtNum=r[2], s1a=r[5], s1b=r[6], s2a=r[7], s2b=r[8], roundCompleted=r[11];
-          // Match round by label or roundNum (try both string and number comparisons)
-          const round=(newS.rounds||[]).find(rd=>{
-            const rdLabel=String(rd.label!=null?rd.label:rd.roundNum);
-            return rdLabel===String(roundLabel)||String(rd.roundNum)===String(roundLabel);
-          });
-          if(!round){console.warn('[Import] Row',ri,': no round match for label=',roundLabel,'available:',(newS.rounds||[]).map(rd=>rd.label||rd.roundNum));return;}
-          const fix=(round.fixtures||[]).find(f=>String(f.courtNum)===String(courtNum));
-          if(!fix){console.warn('[Import] Row',ri,': no fixture match for court=',courtNum,'in round',round.label||round.roundNum);return;}
-          // Update scores — treat empty string and undefined as 0; null means "not provided"
-          const isProvided=v=>v!==''&&v!=null&&v!==undefined;
-          const hasScores=isProvided(s1a)||isProvided(s1b)||isProvided(s2a)||isProvided(s2b);
-          if(hasScores){
-            const n1a=isProvided(s1a)?Number(s1a):0;
-            const n1b=isProvided(s1b)?Number(s1b):0;
-            const n2a=isProvided(s2a)?Number(s2a):0;
-            const n2b=isProvided(s2b)?Number(s2b):0;
-            fix.scores={p1a:n1a,p1b:n1b,p2a:n2a,p2b:n2b};
-            console.log('[Import] Row',ri,'court',courtNum,'scores→',fix.scores);
-            const tot1=n1a+n1b, tot2=n2a+n2b;
-            if(tot1!==tot2){
-              fix.result={winner:tot1>tot2?fix.team1id:fix.team2id,loser:tot1>tot2?fix.team2id:fix.team1id,score1:tot1,score2:tot2};
-            } else {
-              fix.result=null;
-            }
-          }
-          if(String(roundCompleted).toLowerCase()==='yes')round.completed=true;
-        });
-      }
-
-      S=newS;
-      publishState();
-      if(S.launched){showPanel('rounds');renderRounds();}else showPanel('setup');
-      alert2('Imported successfully!','info');
-    }catch(err){alert2('Import failed: '+err.message,'danger');}
+    try{const d=JSON.parse(e.target.result);if(!d.state)throw new Error('Invalid file');S=d.state;
+      if(S.launched){showPanel('rounds');renderRounds()}else showPanel('setup');
+      alert2('Imported!','info');
+    }catch(err){alert2('Import failed: '+err.message,'danger')}
   };
-  reader.readAsBinaryString(file);evt.target.value='';
+  reader.readAsText(file);evt.target.value='';
 }
 
 
