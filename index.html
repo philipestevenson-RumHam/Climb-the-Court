@@ -1084,10 +1084,11 @@ function randomSeeding(){
     }
   );
 }
-function openConf(title,body,onOk){
+function openConf(title,body,onOk,okLabel){
   document.getElementById('conf-title').textContent=title;
   document.getElementById('conf-body').textContent=body;
   const btn=document.getElementById('conf-ok');
+  btn.textContent=okLabel||'Confirm';
   btn.onclick=()=>{closeConf();onOk();};
   document.getElementById('conf-modal').classList.add('open');
 }
@@ -1172,9 +1173,7 @@ function autoWinner(f){
   if(m1>m2)return f.team1id;if(m2>m1)return f.team2id;
   const s1=t1-m1,s2=t2-m2;
   if(s1>s2)return f.team1id;if(s2>s1)return f.team2id;
-  const nc=S.teams[f.team1id].name.localeCompare(S.teams[f.team2id].name);
-  if(nc<0)return f.team1id;if(nc>0)return f.team2id;
-  return null;
+  return null; // Genuine tie — tiebreak required
 }
 
 function confirmRes(fid,rn,winner){
@@ -1199,6 +1198,23 @@ function openTB(fid,rn){
 }
 
 function lockRound(rn){
+  const r=S.rounds[rn];
+  // Check if any scores have been entered at all
+  const anyScores=r.fixtures.some(f=>
+    f.scores.p1a!==''||f.scores.p1b!==''||f.scores.p2a!==''||f.scores.p2b!==''
+  );
+  if(!anyScores){
+    openConf(
+      '⚠️ No Scores Entered',
+      'You haven\'t entered any scores for this round. Are you sure you want to lock it and advance without scores?',
+      ()=>_doLockRound(rn),
+      'Lock Anyway'
+    );
+    return;
+  }
+  _doLockRound(rn);
+}
+function _doLockRound(rn){
   const r=S.rounds[rn];
   // Auto-confirm all fixtures with a clear winner
   r.fixtures.forEach(f=>{

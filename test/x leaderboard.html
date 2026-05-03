@@ -921,37 +921,17 @@ function renderResults() {
   let html = '';
   round.fixtures.forEach(f => {
     if (!f.result) return;
-    const isWinT1 = f.result.winner === f.team1id;
     const winner = S.teams[f.result.winner];
     const loser  = S.teams[f.result.loser];
-
-    // Winner player refs + scores
-    const wp1 = S.players[winner.p1id], wp2 = S.players[winner.p2id];
-    const wp1s = isWinT1 ? (parseInt(f.scores.p1a)||0) : (parseInt(f.scores.p2a)||0);
-    const wp2s = isWinT1 ? (parseInt(f.scores.p1b)||0) : (parseInt(f.scores.p2b)||0);
-    const wTot = wp1s + wp2s;
-
-    // Loser player refs + scores
-    const lp1 = S.players[loser.p1id], lp2 = S.players[loser.p2id];
-    const lp1s = !isWinT1 ? (parseInt(f.scores.p1a)||0) : (parseInt(f.scores.p2a)||0);
-    const lp2s = !isWinT1 ? (parseInt(f.scores.p1b)||0) : (parseInt(f.scores.p2b)||0);
-    const lTot = lp1s + lp2s;
-
-    const hasScores = f.scores.p1a !== '' || f.scores.p2a !== '';
-    const gs = s => `<span style="color:var(--gold);font-weight:700;font-size:0.8em">(${s})</span>`;
-    const amp = `<span style="color:var(--muted)"> &amp; </span>`;
-    const wPl = hasScores
-      ? `${esc(wp1?wp1.name:'?')} ${gs(wp1s)}${amp}${esc(wp2?wp2.name:'?')} ${gs(wp2s)}`
-      : `${esc(wp1?wp1.name:'?')}${amp}${esc(wp2?wp2.name:'?')}`;
-    const lPl = hasScores
-      ? `${esc(lp1?lp1.name:'?')} ${gs(lp1s)}${amp}${esc(lp2?lp2.name:'?')} ${gs(lp2s)}`
-      : `${esc(lp1?lp1.name:'?')}${amp}${esc(lp2?lp2.name:'?')}`;
-
+    const t1tot = (parseInt(f.scores.p1a)||0) + (parseInt(f.scores.p1b)||0);
+    const t2tot = (parseInt(f.scores.p2a)||0) + (parseInt(f.scores.p2b)||0);
+    const wTot = f.result.winner === f.team1id ? t1tot : t2tot;
+    const lTot = f.result.loser  === f.team1id ? t1tot : t2tot;
     html += `<tr>
       <td><span class="badge-court">C${f.courtNum}</span></td>
-      <td style="color:var(--win);font-weight:600">${esc(winner.name)}<br><span style="font-size:0.78rem;font-weight:500;color:#fff">${wPl}</span></td>
-      <td style="color:var(--muted)">${esc(loser.name)}<br><span style="font-size:0.78rem;color:rgba(122,173,128,0.85)">${lPl}</span></td>
-      <td style="font-family:'Bebas Neue',cursive;color:var(--accent)">${hasScores ? wTot+' – '+lTot : '—'}</td>
+      <td style="color:var(--win);font-weight:600">${esc(winner.name)}</td>
+      <td style="color:var(--muted)">${esc(loser.name)}</td>
+      <td style="font-family:'Bebas Neue',cursive;color:var(--accent)">${wTot} – ${lTot}</td>
     </tr>`;
   });
 
@@ -1026,20 +1006,14 @@ function renderTeamsTab() {
     return;
   }
   const round = matchRounds[selectedRoundIdx];
-  const stats = S.teams.map((t, i) => ({ tid: i, wins: 0, losses: 0, totalScore: 0, p1score: null, p2score: null }));
+  const stats = S.teams.map((t, i) => ({ tid: i, wins: 0, losses: 0, totalScore: 0 }));
   const fixtures = round ? (round.fixtures || []) : [];
   fixtures.forEach(fix => {
     const sc = fix.scores || {};
     const s1 = stats.find(s => s.tid === fix.team1id);
     const s2 = stats.find(s => s.tid === fix.team2id);
-    if (s1) {
-      s1.totalScore += (parseInt(sc.p1a) || 0) + (parseInt(sc.p1b) || 0);
-      if (sc.p1a !== '' || sc.p1b !== '') { s1.p1score = parseInt(sc.p1a)||0; s1.p2score = parseInt(sc.p1b)||0; }
-    }
-    if (s2) {
-      s2.totalScore += (parseInt(sc.p2a) || 0) + (parseInt(sc.p2b) || 0);
-      if (sc.p2a !== '' || sc.p2b !== '') { s2.p1score = parseInt(sc.p2a)||0; s2.p2score = parseInt(sc.p2b)||0; }
-    }
+    if (s1) s1.totalScore += (parseInt(sc.p1a) || 0) + (parseInt(sc.p1b) || 0);
+    if (s2) s2.totalScore += (parseInt(sc.p2a) || 0) + (parseInt(sc.p2b) || 0);
     if (fix.result) {
       const sw = stats.find(s => s.tid === fix.result.winner);
       const sl = stats.find(s => s.tid === fix.result.loser);
@@ -1054,13 +1028,10 @@ function renderTeamsTab() {
   stats.forEach((s, i) => {
     const rank = i + 1, cls = rank <= 3 ? 'rank-' + rank : 'rank-n';
     const t = S.teams[s.tid], p1 = S.players[t.p1id], p2 = S.players[t.p2id];
-    const gs = sc => `<span style="color:var(--gold);font-weight:700;font-size:0.85em">(${sc})</span>`;
-    const p1cell = esc(p1?p1.name:'?') + (s.p1score !== null ? ' '+gs(s.p1score) : '');
-    const p2cell = esc(p2?p2.name:'?') + (s.p2score !== null ? ' '+gs(s.p2score) : '');
     h += `<tr>
       <td><span class="rank-badge ${cls}">${rank}</span></td>
       <td><strong>${esc(t.name)}</strong></td>
-      <td style="font-size:0.85rem;color:#fff;font-weight:600">${p1cell} <span style="color:var(--muted)">&amp;</span> ${p2cell}</td>
+      <td style="font-size:0.8rem;color:var(--muted)">${esc(p1 ? p1.name : '?')} &amp; ${esc(p2 ? p2.name : '?')}</td>
       <td><span style="color:var(--win);font-weight:700">${s.wins}</span></td>
       <td><span style="color:var(--lose)">${s.losses}</span></td>
       <td style="font-family:'Bebas Neue',cursive;font-size:1.1rem;color:var(--accent)">${s.totalScore}</td>
@@ -1137,21 +1108,15 @@ function renderOverallTeamsTab() {
     document.getElementById('p7').innerHTML = '<div class="no-data">No active tournament</div>';
     return;
   }
-  const stats = S.teams.map((t, i) => ({ tid: i, wins: 0, losses: 0, totalScore: 0, p1score: 0, p2score: 0, hasAnyScore: false }));
+  const stats = S.teams.map((t, i) => ({ tid: i, wins: 0, losses: 0, totalScore: 0 }));
   (matchRounds || []).forEach(round => {
     if (!round) return;
     (round.fixtures || []).forEach(fix => {
       const sc = fix.scores || {};
       const s1 = stats.find(s => s.tid === fix.team1id);
       const s2 = stats.find(s => s.tid === fix.team2id);
-      if (s1) {
-        s1.totalScore += (parseInt(sc.p1a) || 0) + (parseInt(sc.p1b) || 0);
-        if (sc.p1a !== '' || sc.p1b !== '') { s1.p1score += parseInt(sc.p1a)||0; s1.p2score += parseInt(sc.p1b)||0; s1.hasAnyScore = true; }
-      }
-      if (s2) {
-        s2.totalScore += (parseInt(sc.p2a) || 0) + (parseInt(sc.p2b) || 0);
-        if (sc.p2a !== '' || sc.p2b !== '') { s2.p1score += parseInt(sc.p2a)||0; s2.p2score += parseInt(sc.p2b)||0; s2.hasAnyScore = true; }
-      }
+      if (s1) s1.totalScore += (parseInt(sc.p1a) || 0) + (parseInt(sc.p1b) || 0);
+      if (s2) s2.totalScore += (parseInt(sc.p2a) || 0) + (parseInt(sc.p2b) || 0);
       if (fix.result) {
         const sw = stats.find(s => s.tid === fix.result.winner);
         const sl = stats.find(s => s.tid === fix.result.loser);
@@ -1167,13 +1132,10 @@ function renderOverallTeamsTab() {
   stats.forEach((s, i) => {
     const rank = i + 1, cls = rank <= 3 ? 'rank-' + rank : 'rank-n';
     const t = S.teams[s.tid], p1 = S.players[t.p1id], p2 = S.players[t.p2id];
-    const gs = sc => `<span style="color:var(--gold);font-weight:700;font-size:0.85em">(${sc})</span>`;
-    const p1cell = esc(p1?p1.name:'?') + (s.hasAnyScore ? ' '+gs(s.p1score) : '');
-    const p2cell = esc(p2?p2.name:'?') + (s.hasAnyScore ? ' '+gs(s.p2score) : '');
     h += `<tr>
       <td><span class="rank-badge ${cls}">${rank}</span></td>
       <td><strong>${esc(t.name)}</strong></td>
-      <td style="font-size:0.85rem;color:#fff;font-weight:600">${p1cell} <span style="color:var(--muted)">&amp;</span> ${p2cell}</td>
+      <td style="font-size:0.8rem;color:var(--muted)">${esc(p1 ? p1.name : '?')} &amp; ${esc(p2 ? p2.name : '?')}</td>
       <td><span style="color:var(--win);font-weight:700">${s.wins}</span></td>
       <td><span style="color:var(--lose)">${s.losses}</span></td>
       <td style="font-family:'Bebas Neue',cursive;font-size:1.1rem;color:var(--accent)">${s.totalScore}</td>
