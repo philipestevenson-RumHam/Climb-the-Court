@@ -263,11 +263,6 @@ body::before {
 .team-name{font-weight:700;font-size:1em;flex:1;line-height:1.1;}
 .team-players{font-size:0.7em;color:rgba(255,255,255,0.75);font-weight:600;margin-top:0.2em;line-height:1.3;}
 .team-total{font-family:'Bebas Neue',cursive;font-size:1.9em;color:var(--accent);line-height:1;}
-.team-move{font-family:'Bebas Neue',cursive;font-size:1.9em;line-height:1;text-align:center;min-width:1.5em;}
-.team-move-up{color:var(--win);}
-.team-move-down{color:var(--lose);}
-.team-move-stay{color:var(--stay);}
-.team-move-place{font-size:1.1em;color:var(--gold);}
 
 .no-data{
   padding:2rem;
@@ -763,26 +758,6 @@ function renderCourts() {
     return;
   }
 
-  const numCourts = S.numPlayers / 4;
-  const finalRound = isFinalRound(round);
-
-  function getCourtMoveHTML(isWinner, courtNum, isFinal) {
-    if (isFinal) return ''; // handled separately
-    if (isWinner) {
-      if (courtNum === 1) return '<div class="team-move team-move-stay">⏸</div>';
-      return '<div class="team-move team-move-up">↑</div>';
-    } else {
-      if (courtNum === numCourts) return '<div class="team-move team-move-stay">⏸</div>';
-      return '<div class="team-move team-move-down">↓</div>';
-    }
-  }
-
-  function getFinalPlaceHTML(isWinner, courtNum) {
-    const posNum = (courtNum - 1) * 2 + (isWinner ? 1 : 2);
-    const ordinal = ORDINALS[posNum - 1] || (posNum + 'th');
-    return `<div class="team-move team-move-place">${ordinal}</div>`;
-  }
-
   let html = '';
   round.fixtures.forEach(f => {
     const t1 = S.teams[f.team1id], t2 = S.teams[f.team2id];
@@ -799,19 +774,6 @@ function renderCourts() {
     const label = `Court ${f.courtNum}`;
     const isTop = f.courtNum === 1;
 
-    // Movement indicators
-    let t1move = '', t2move = '';
-    if (f.result) {
-      const t1win = f.result.winner === f.team1id;
-      if (finalRound) {
-        t1move = getFinalPlaceHTML(t1win, f.courtNum);
-        t2move = getFinalPlaceHTML(!t1win, f.courtNum);
-      } else {
-        t1move = getCourtMoveHTML(t1win, f.courtNum, false);
-        t2move = getCourtMoveHTML(!t1win, f.courtNum, false);
-      }
-    }
-
     html += `<div class="court-card${f.result ? ' has-winner' : ''}">
       <div class="court-card-hdr ${isTop ? 'gold' : ''}">
         <span class="court-name">${label}</span>
@@ -823,7 +785,6 @@ function renderCourts() {
             <div class="team-name">${esc(t1.name)}</div>
             <div class="team-players" style="color:#fff;font-weight:700;font-size:0.75em">${esc(p1a.name)}${p1aScore} <span style="color:var(--muted)">&amp;</span> ${esc(p1b.name)}${p1bScore}</div>
           </div>
-          ${t1move}
           <div class="team-total">${hasT1 ? t1tot : '—'}</div>
         </div>
         <div class="team-row${f.result && f.result.winner===f.team2id ? ' winner-row' : ''}">
@@ -831,7 +792,6 @@ function renderCourts() {
             <div class="team-name">${esc(t2.name)}</div>
             <div class="team-players" style="color:#fff;font-weight:700;font-size:0.75em">${esc(p2a.name)}${p2aScore} <span style="color:var(--muted)">&amp;</span> ${esc(p2b.name)}${p2bScore}</div>
           </div>
-          ${t2move}
           <div class="team-total">${hasT2 ? t2tot : '—'}</div>
         </div>
         ${f.result ? `<div style="text-align:center;margin-top:0.5rem;font-family:'Bebas Neue',cursive;font-size:0.9rem;color:var(--win)">✓ ${esc(S.teams[f.result.winner].name)} Win</div>` : ''}
