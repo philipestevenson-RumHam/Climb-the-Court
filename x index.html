@@ -213,12 +213,12 @@ select.form-input option{background:var(--dark2)}
 .gfx-court-hdr{background:linear-gradient(135deg,var(--grass),var(--grass-light));padding:1.5% 3%;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .gfx-court-hdr.gold-hdr{background:linear-gradient(135deg,#8b7700,#b8a000)}
 .gfx-court-name{font-family:'Bebas Neue',cursive;font-size:clamp(0.9rem,1.8vw,1.5rem);color:#fff;letter-spacing:0.06em}
-.gfx-body{flex:1;display:flex;align-items:stretch;padding:2% 2%;gap:1%;min-height:0}
+.gfx-body{flex:1;display:flex;align-items:stretch;padding:2% 3%;gap:2%;min-height:0}
 .gfx-team{flex:1;display:flex;flex-direction:column;justify-content:space-between}
 .gfx-team-lbl{font-family:'Bebas Neue',cursive;font-size:clamp(0.65rem,1.2vw,1rem);color:var(--muted);letter-spacing:0.1em;margin-bottom:4%}
-.gfx-player-row{display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:6px;padding:0 2%;height:2.4em;flex-shrink:0;overflow:hidden;margin-bottom:3%}
+.gfx-player-row{display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:6px;padding:0 4%;height:2.2em;flex-shrink:0;overflow:hidden;margin-bottom:3%}
 .gfx-p-name{font-size:clamp(0.6rem,1.1vw,0.95rem);font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.gfx-p-score{font-family:'Bebas Neue',cursive;font-size:clamp(0.75rem,1.4vw,1.2rem);color:var(--accent);min-width:1.6em;text-align:right}
+.gfx-p-score{font-family:'Bebas Neue',cursive;font-size:clamp(0.75rem,1.4vw,1.2rem);color:var(--accent);min-width:2em;text-align:right}
 .gfx-vs{font-family:'Bebas Neue',cursive;font-size:clamp(0.8rem,1.5vw,1.3rem);color:var(--muted);display:flex;align-items:center;padding:0 1%;align-self:center}
 .gfx-total{font-family:'Bebas Neue',cursive;font-size:clamp(1rem,2vw,1.8rem);color:var(--accent);text-align:center;margin-top:2%}
 .gfx-divider{width:1px;background:var(--border);flex-shrink:0;align-self:stretch}
@@ -1793,23 +1793,6 @@ async function exportPack(){
   // ── 3. Final Climb the Court Results ──────────────────────────────────
   {
     const ordinals=['1st','2nd','3rd','4th','5th','6th','7th','8th','9th','10th','11th','12th','13th','14th','15th','16th'];
-    // Compute total scores per team and per player for final results image
-    const frTeamScores={};
-    const frPlayerScores={};
-    (S.players||[]).forEach(p=>{ if(p) frPlayerScores[p.id]=0; });
-    S.teams.forEach((t,i)=>{ frTeamScores[i]=0; });
-    allRounds.forEach(r=>{(r.fixtures||[]).forEach(f=>{
-      const sc=f.scores||{},t1=S.teams[f.team1id],t2=S.teams[f.team2id];
-      if(!t1||!t2)return;
-      const s1a=parseInt(sc.p1a)||0,s1b=parseInt(sc.p1b)||0;
-      const s2a=parseInt(sc.p2a)||0,s2b=parseInt(sc.p2b)||0;
-      if(frTeamScores[f.team1id]!==undefined)frTeamScores[f.team1id]+=s1a+s1b;
-      if(frTeamScores[f.team2id]!==undefined)frTeamScores[f.team2id]+=s2a+s2b;
-      if(t1.p1id!==undefined&&frPlayerScores[t1.p1id]!==undefined)frPlayerScores[t1.p1id]+=s1a;
-      if(t1.p2id!==undefined&&frPlayerScores[t1.p2id]!==undefined)frPlayerScores[t1.p2id]+=s1b;
-      if(t2.p1id!==undefined&&frPlayerScores[t2.p1id]!==undefined)frPlayerScores[t2.p1id]+=s2a;
-      if(t2.p2id!==undefined&&frPlayerScores[t2.p2id]!==undefined)frPlayerScores[t2.p2id]+=s2b;
-    });});
     let finalRows='';
     if(lastRound && lastRound.fixtures && lastRound.completed){
       const positions=[];
@@ -1818,21 +1801,18 @@ async function exportPack(){
         const tw=S.teams[f.result.winner],tl=S.teams[f.result.loser];
         const pw=(f.courtNum-1)*2+1,pl=(f.courtNum-1)*2+2;
         const medal=p=>p===1?'🥇':p===2?'🥈':p===3?'🥉':'🏅';
-        positions.push({pos:pw,medal:medal(pw),team:tw,tid:f.result.winner,isWin:true});
-        positions.push({pos:pl,medal:medal(pl),team:tl,tid:f.result.loser,isWin:false});
+        positions.push({pos:pw,medal:medal(pw),team:tw,isWin:true});
+        positions.push({pos:pl,medal:medal(pl),team:tl,isWin:false});
       });
       positions.sort((a,b)=>a.pos-b.pos);
       positions.forEach(fp=>{
         const p1=S.players[fp.team.p1id],p2=S.players[fp.team.p2id];
         const ord=ordinals[fp.pos-1]||fp.pos+'th';
-        const tScore=frTeamScores[fp.tid]||0;
-        const p1Score=p1?(frPlayerScores[p1.id]||0):0;
-        const p2Score=p2?(frPlayerScores[p2.id]||0):0;
         finalRows+=`<tr>
           <td style="font-size:1.5rem;width:50px">${fp.medal}</td>
           <td><strong style="font-size:1rem">${ord}</strong></td>
-          <td><strong>${esc2(fp.team.name)} (${tScore})</strong></td>
-          <td><strong>${esc2(p1?p1.name:'?')} (${p1Score})</strong> &amp; <strong>${esc2(p2?p2.name:'?')} (${p2Score})</strong></td>
+          <td><strong>${esc2(fp.team.name)}</strong></td>
+          <td style="color:#7aad80">${esc2(p1?p1.name:'?')} &amp; ${esc2(p2?p2.name:'?')}</td>
         </tr>`;
       });
     } else {
@@ -1877,7 +1857,7 @@ async function exportPack(){
       tRows+=`<tr${rank===1?' style="background:rgba(240,224,64,0.06)"':''}>
         <td><span class="rank-badge ${cls}">${rank}</span></td>
         <td><strong>${esc2(p?p.name:'?')}</strong></td>
-        <td><strong style="color:#7aad80">${esc2(team?team.name:'?')}</strong></td>
+        <td style="color:#7aad80">${esc2(team?team.name:'?')}</td>
         <td style="color:#3dbd58;font-weight:700">${ps.wins}</td>
         <td style="color:#e05050">${ps.losses}</td>
         <td style="font-size:1.1rem;font-weight:900;color:#4eff7a">${ps.totalScore}</td>
@@ -1911,33 +1891,21 @@ async function exportPack(){
       <div class="hl-name">${esc2(topT.name)}</div>
       <div class="hl-detail">${esc2(tp1?tp1.name:'?')} &amp; ${esc2(tp2?tp2.name:'?')} &nbsp;·&nbsp; ${top.wins}W ${top.losses}L &nbsp;·&nbsp; ${top.totalScore} pts</div></div>
     </div>`:'';
-    // Compute per-player scores for best_team display
-    const btPlayerScores={};
-    (S.players||[]).forEach(p=>{ if(p) btPlayerScores[p.id]=0; });
-    allRounds.forEach(r=>{(r.fixtures||[]).forEach(f=>{
-      const sc=f.scores||{},t1=S.teams[f.team1id],t2=S.teams[f.team2id];
-      if(!t1||!t2)return;
-      if(t1.p1id!==undefined&&btPlayerScores[t1.p1id]!==undefined)btPlayerScores[t1.p1id]+=parseInt(sc.p1a)||0;
-      if(t1.p2id!==undefined&&btPlayerScores[t1.p2id]!==undefined)btPlayerScores[t1.p2id]+=parseInt(sc.p1b)||0;
-      if(t2.p1id!==undefined&&btPlayerScores[t2.p1id]!==undefined)btPlayerScores[t2.p1id]+=parseInt(sc.p2a)||0;
-      if(t2.p2id!==undefined&&btPlayerScores[t2.p2id]!==undefined)btPlayerScores[t2.p2id]+=parseInt(sc.p2b)||0;
-    });});
     let tRows='';
     tStats.slice(0,10).forEach((s,i)=>{
       const rank=i+1,cls=rank<=3?'rank-'+rank:'rank-n';
       const t=S.teams[s.tid],p1=S.players[t.p1id],p2=S.players[t.p2id];
-      const p1Score=p1?(btPlayerScores[p1.id]||0):0;
-      const p2Score=p2?(btPlayerScores[p2.id]||0):0;
       tRows+=`<tr${rank===1?' style="background:rgba(240,224,64,0.06)"':''}>
         <td><span class="rank-badge ${cls}">${rank}</span></td>
-        <td><strong>${esc2(t.name)} (${s.totalScore})</strong></td>
-        <td><strong>${esc2(p1?p1.name:'?')} (${p1Score})</strong> &amp; <strong>${esc2(p2?p2.name:'?')} (${p2Score})</strong></td>
+        <td><strong>${esc2(t.name)}</strong></td>
+        <td style="color:#7aad80">${esc2(p1?p1.name:'?')} &amp; ${esc2(p2?p2.name:'?')}</td>
         <td style="color:#3dbd58;font-weight:700">${s.wins}</td>
         <td style="color:#e05050">${s.losses}</td>
+        <td style="font-size:1.1rem;font-weight:900;color:#4eff7a">${s.totalScore}</td>
       </tr>`;
     });
     const html=pageHeader('Best Team — Overall Rankings')+hl+
-      `<table><thead><tr><th>#</th><th>Team</th><th>Players</th><th>W</th><th>L</th></tr></thead><tbody>${tRows}</tbody></table>`;
+      `<table><thead><tr><th>#</th><th>Team</th><th>Players</th><th>W</th><th>L</th><th>Score</th></tr></thead><tbody>${tRows}</tbody></table>`;
     const blob=await captureHtml(html,900);
     if(blob){ imgFolder.file('best_team.png',blob); gifBlobs.push(blob); }
   }
@@ -1949,7 +1917,7 @@ async function exportPack(){
       const workerResp = await fetch('https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js');
       const workerText = await workerResp.text();
       const workerBlobUrl = URL.createObjectURL(new Blob([workerText],{type:'application/javascript'}));
-      const GIF_W=1200, GIF_H=630;
+      const GIF_W=800, GIF_H=420;
       const blobToGifFrame = async (b) => {
         const url=URL.createObjectURL(b);
         return new Promise(res=>{
