@@ -1242,9 +1242,6 @@ function applyState(state) {
     setStatus(false, 'No active tournament');
     return;
   }
-
-  // Detect if the active round has advanced (new round started)
-  const prevCurrentRound = S ? S.currentRound : undefined;
   S = state;
 
   // Build rounds list (include seeding as round 0 if present)
@@ -1253,57 +1250,26 @@ function applyState(state) {
   const onlyMatchRounds = allRounds.filter(r => r.type === 'match');
   matchRounds = [...seedingRounds, ...onlyMatchRounds];
 
-  // If the tournament manager has moved to a new round, unpin so we follow it
-  if (prevCurrentRound !== undefined && S.currentRound !== prevCurrentRound) {
-    window._roundPinned = false;
-  }
+  // Auto-select most recent started round
+  let autoIdx = 0;
+  matchRounds.forEach((r, i) => {
+    const hasData = r.completed || (r.fixtures && r.fixtures.some(f =>
+      f.scores && (f.scores.p1a !== '' || f.scores.p2a !== '')
+    ));
+    if (hasData) autoIdx = i;
+  });
 
-  if (!window._roundPinned) {
-    // Follow S.currentRound — the active round in the tournament manager
-    const currentRoundData = S.rounds && S.rounds[S.currentRound];
-    if (currentRoundData) {
-      const idx = matchRounds.findIndex(r =>
-        r.roundNum === currentRoundData.roundNum && r.type === currentRoundData.type
-      );
-      if (idx !== -1) selectedRoundIdx = idx;
-    } else {
-      // Fallback: last round with data
-      matchRounds.forEach((r, i) => {
-        const hasData = r.completed || (r.fixtures && r.fixtures.some(f =>
-          f.scores && (f.scores.p1a !== '' || f.scores.p2a !== '')
-        ));
-        if (hasData) selectedRoundIdx = i;
-      });
-    }
-  }
+  // Only auto-advance if we haven't manually selected
+  if (!window._roundPinned) selectedRoundIdx = autoIdx;
 
   renderAll();
   setStatus(true, 'Live · ' + new Date().toLocaleTimeString());
-}
-
-// Navigate leaderboard to Courts tab for a specific round
-function navigateToCourts(roundNum) {
-  // Find the index in matchRounds for the given roundNum
-  if (matchRounds && matchRounds.length > 0) {
-    const idx = matchRounds.findIndex(r => r.roundNum === roundNum);
-    if (idx !== -1) {
-      selectedRoundIdx = idx;
-      window._roundPinned = true;
-    }
-  }
-  // Switch to Courts tab (tab 2)
-  const allTabs = document.querySelectorAll('.lb-tab');
-  if (allTabs && allTabs.length >= 2) {
-    switchTab(2, allTabs[1]);
-  }
-  renderAll();
 }
 
 // Broadcast Channel listener
 const _bc = new BroadcastChannel('ctc_live');
 _bc.onmessage = e => {
   if (e.data && e.data.type === 'state_update') applyState(e.data.state);
-  if (e.data && e.data.type === 'navigate_courts') navigateToCourts(e.data.roundNum);
 };
 
 // Initial load from localStorage

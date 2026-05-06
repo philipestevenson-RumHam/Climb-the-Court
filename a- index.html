@@ -1149,7 +1149,6 @@ function startRound(rn){
   if(S.rounds.length<=rn)S.rounds.push(ro); else S.rounds[rn]=ro;
   S.currentRound=rn;curView='courts';
   renderRounds();renderSheet();
-  _ctcBC.postMessage({ type: 'navigate_courts', roundNum: rn });
 }
 
 function buildNextCA(r){
@@ -1233,7 +1232,6 @@ function _doLockRound(rn){
     return;
   }
   r.completed=true;renderRounds();renderSheet();
-  _ctcBC.postMessage({ type: 'navigate_courts', roundNum: rn });
 }
 
 // ═══════════════════════════════════════════════════════
